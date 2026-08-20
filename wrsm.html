@@ -19,6 +19,7 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-primary);
@@ -41,9 +42,46 @@
         h1 { font-size: 1.35rem; font-weight: 700; color: var(--text-main); }
         .tagline { font-size: 0.8rem; color: var(--text-muted); }
 
+        /* Tab Layout & Navigation */
+        .tab-navigation {
+            display: flex;
+            gap: 6px;
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 6px;
+            margin-top: 10px;
+        }
+
+        .tab-btn {
+            background-color: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 8px 16px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.15s ease;
+            width: auto;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-main);
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn.active {
+            color: var(--text-main);
+            background-color: var(--accent-blue);
+        }
+
+        /* Core Master-Frame Layout */
         .dashboard {
             display: grid;
-            grid-template-columns: 350px 1fr 280px; /* Upgraded to 3 Columns */
+            grid-template-columns: 350px 1fr 280px;
             grid-template-rows: 1fr 200px;
             gap: 12px;
             flex-grow: 1;
@@ -51,17 +89,18 @@
             min-height: 0;
         }
 
-        /* Left Sidebar (No changes) */
+        /* Sidebar Scrolling Engine */
         .sidebar {
             grid-row: 1 / span 2;
             display: flex;
             flex-direction: column;
             gap: 12px;
             overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-color) transparent;
             min-height: 0;
         }
 
-        /* Right Sidebar for Custom Scales */
         .right-sidebar {
             grid-column: 3;
             grid-row: 1 / span 2;
@@ -69,10 +108,36 @@
             flex-direction: column;
             gap: 12px;
             overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-color) transparent;
             min-height: 0;
             background-color: var(--bg-primary);
             border-left: 1px solid var(--border-color);
             padding-left: 10px;
+        }
+
+        /* Cards */
+        .card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .card-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .scale-card {
@@ -136,30 +201,8 @@
             cursor: not-allowed;
         }
 
-        .card {
-            background-color: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .card-title {
-            font-size: 0.85rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-muted);
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 5px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
         label { font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 2px; }
+
         select, input, button {
             width: 100%;
             padding: 6px 10px;
@@ -178,10 +221,11 @@
             border: none;
             transition: opacity 0.1s;
         }
+
         button:hover { opacity: 0.9; }
         button.disconnect { background-color: var(--accent-red); }
 
-        /* Physics Inspector Panel Styles */
+        /* Physics Inspector */
         .inspector-section {
             background-color: var(--bg-primary);
             border-radius: 6px;
@@ -191,6 +235,7 @@
             flex-direction: column;
             gap: 4px;
         }
+
         .inspector-title {
             font-size: 0.7rem;
             font-weight: bold;
@@ -200,16 +245,18 @@
             border-bottom: 1px dashed var(--border-color);
             padding-bottom: 2px;
         }
+
         .inspector-row {
             display: flex;
             justify-content: space-between;
             font-size: 0.78rem;
             font-family: monospace;
         }
+
         .inspector-label { color: var(--text-muted); }
         .inspector-val { font-weight: bold; color: var(--text-main); }
 
-        /* Canvas Plotter Area */
+        /* Center Plotter & Controllers */
         .plot-container {
             grid-column: 2;
             grid-row: 1;
@@ -242,7 +289,6 @@
             cursor: crosshair;
         }
 
-        /* Playback & Scrollbar Controls */
         .playback-control-bar {
             display: flex;
             align-items: center;
@@ -263,6 +309,7 @@
             cursor: pointer;
             white-space: nowrap;
         }
+
         .live-toggle input { width: auto; cursor: pointer; }
 
         .window-selector {
@@ -271,6 +318,7 @@
             gap: 6px;
             white-space: nowrap;
         }
+
         .window-selector select { width: 100px; padding: 4px; }
 
         .slider-container {
@@ -281,6 +329,7 @@
             font-family: monospace;
             font-size: 0.75rem;
         }
+
         .slider-container input[type="range"] {
             flex-grow: 1;
             padding: 0;
@@ -297,7 +346,6 @@
             white-space: nowrap;
         }
 
-        /* Var Toggles */
         .plot-selectors {
             display: flex;
             flex-wrap: wrap;
@@ -310,6 +358,7 @@
             border-radius: 4px;
             border: 1px solid var(--border-color);
         }
+
         .selector-tag {
             display: flex;
             align-items: center;
@@ -322,9 +371,10 @@
             cursor: pointer;
             white-space: nowrap;
         }
+
         .selector-tag input { width: auto; cursor: pointer; }
 
-        /* Terminal Console */
+        /* Terminals & Post-Run Panels */
         .terminal-container {
             grid-column: 2;
             grid-row: 2;
@@ -355,55 +405,11 @@
             display: flex;
             gap: 8px;
         }
+
         .console-input-row input { flex-grow: 1; }
         .console-input-row button { width: auto; padding: 0 15px; }
 
-        .tab-navigation {
-            display: flex;
-            gap: 6px;
-            background-color: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 6px;
-            margin-top: 10px;
-        }
-
-        .tab-btn {
-            background-color: transparent;
-            border: none;
-            color: var(--text-muted);
-            padding: 8px 16px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            transition: all 0.15s ease;
-            width: auto;
-        }
-
-        .tab-btn:hover {
-            color: var(--text-main);
-            background-color: rgba(255, 255, 255, 0.05);
-        }
-
-        .tab-btn.active {
-            color: var(--text-main);
-            background-color: var(--accent-blue);
-        }
-
-        /* Tab Content Containers */
-        .tab-content {
-            display: none; /* Hidden by default */
-            flex-grow: 1;
-            min-height: 0;
-        }
-
-        .tab-content.active {
-            display: grid; /* Becomes the dashboard grid when active */
-        }
-
+        /* Settings Tab */
         .tab-content-settings {
             display: none;
             flex-grow: 1;
@@ -426,11 +432,9 @@
             height: fit-content;
         }
 
-        /* Custom Scrollbar for Left Sidebar */
-        .sidebar {
-            overflow-y: auto;
-            scrollbar-width: thin;
-            scrollbar-color: var(--border-color) transparent;
+        /* Core Visibility Utility */
+        .hidden {
+            display: none !important;
         }
     </style>
 </head>
@@ -451,17 +455,17 @@
         <button class="tab-btn" id="tab-btn-settings">System Settings</button>
     </div>
 
-    <!-- ==================== TAB 1: REVIEW DATA ==================== -->
-    <div class="tab-content active dashboard" id="panel-review">
+    <!-- ==================== MAIN DASHBOARD (Shared Canvas/Scalers Layout) ==================== -->
+    <div class="dashboard" id="main-dashboard">
         <!-- LEFT SIDEBAR -->
         <div class="sidebar">
-            <!-- Physics Inspector -->
-            <div class="card" id="card-inspector-review">
-                <!-- Inner HTML injected dynamically by JS to keep tabs synchronized -->
+            <!-- Physics Inspector (Always Shared, Single Instance) -->
+            <div class="card" id="card-inspector">
+                <!-- Injected dynamically by JS -->
             </div>
             
-            <!-- File Operations -->
-            <div class="card">
+            <!-- File Operations (Visible on Review, Hidden on Analysis) -->
+            <div class="card" id="card-file-ops">
                 <div class="card-title">File & Test Operations</div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                     <button id="btn-save" style="background-color: var(--accent-green); font-size: 0.75rem;">Export CSV</button>
@@ -472,9 +476,21 @@
                     <input type="file" id="file-load" accept=".csv">
                 </div>
             </div>
+
+            <!-- Analysis Events (Visible on Analysis, Hidden on Review) -->
+            <div class="card hidden" id="card-analysis-events">
+                <div class="card-title">Analysis Events</div>
+                <button id="btn-perform-analysis" style="background-color: var(--accent-gold); margin-bottom: 8px;">Perform Start Analysis</button>
+                <div>
+                    <label>Detected Cranking Starts</label>
+                    <select id="select-analysis-event" disabled>
+                        <option value="">-- No starts found in this log --</option>
+                    </select>
+                </div>
+            </div>
         </div>
 
-        <!-- CENTER PANEL -->
+        <!-- CENTER PANEL (Completely Shared Canvas & Timeline controls!) -->
         <div class="plot-container">
             <div class="card-title" style="margin-bottom: 8px;">
                 High-Fidelity Telemetry Canvas
@@ -484,19 +500,19 @@
                 <canvas id="telemetryCanvas"></canvas>
             </div>
             
-            <!-- Playback Control Bar -->
+            <!-- Unified Playback Control Bar -->
             <div class="playback-control-bar">
-                <label class="live-toggle">
+                <label class="live-toggle" id="container-live-toggle">
                     <input type="checkbox" id="live-follow" checked> Live
                 </label>
-                <div class="window-selector">
+                <div class="window-selector" id="container-window-selector">
                     <label>Window:</label>
                     <select id="window-size">
                         <option value="50">1s (50p)</option>
+                        <option value="150">3s (150p)</option>
                         <option value="250">5s (250p)</option>
-                        <option value="750">15s (750p)</option>
+                        <option value="500">10s (500p)</option>
                         <option value="1500" selected>30s (1500p)</option>
-                        <option value="3000">60s (3000p)</option>
                         <option value="all">All Data</option>
                     </select>
                 </div>
@@ -510,12 +526,13 @@
                 </div>
             </div>
             <div class="plot-selectors" id="plot-selectors-container">
-                <!-- Toggles injected here -->
+                <!-- Shared toggles injected here -->
             </div>
         </div>
 
-        <!-- INTERACTIVE TERMINAL -->
-        <div class="terminal-container">
+        <!-- CENTER LOWER PANEL -->
+        <!-- Interactive Command Console -->
+        <div class="terminal-container" id="card-terminal">
             <div class="card-title">Interactive VESC Command Terminal</div>
             <div class="console-out" id="console-display">--- Command Terminal Log Offline ---</div>
             <div class="console-input-row">
@@ -524,7 +541,15 @@
             </div>
         </div>
 
-        <!-- RIGHT SIDEBAR (AXIS SCALERS) -->
+        <!-- Cranking Diagnostics report -->
+        <div class="terminal-container hidden" id="card-crank-report">
+            <div class="card-title">Cranking Phase Report</div>
+            <div class="console-out" id="analysis-report-display" style="color: var(--text-main); font-family: monospace;">
+--- Load a log and click 'Perform Start Analysis' to isolate cranking phases ---
+            </div>
+        </div>
+
+        <!-- RIGHT SIDEBAR (Axis Scalers - Completely Shared!) -->
         <div class="right-sidebar">
             <div class="card" style="flex-shrink: 0;">
                 <div class="card-title">Axis Scalers</div>
@@ -533,93 +558,10 @@
                 </div>
             </div>
             <div id="active-scales-list" style="display: flex; flex-direction: column; gap: 10px; flex-grow: 1; overflow-y: auto;">
-                <!-- Scale cards injected here -->
+                <!-- Single scale cards list -->
             </div>
         </div>
     </div>
-
-
-    <!-- ==================== TAB 2: START ANALYSIS ==================== -->
-    <div class="tab-content dashboard" id="panel-analysis">
-        <!-- LEFT SIDEBAR -->
-        <div class="sidebar">
-            <!-- Physics Inspector -->
-            <div class="card" id="card-inspector-analysis">
-                <!-- Inner HTML mirrored dynamically by JS -->
-            </div>
-
-            <!-- Analysis Events Card -->
-            <div class="card">
-                <div class="card-title">Analysis Events</div>
-                <button id="btn-perform-analysis" style="background-color: var(--accent-gold); margin-bottom: 8px;">Perform Start Analysis</button>
-                <div>
-                    <label>Detected Cranking Starts</label>
-                    <select id="select-analysis-event" disabled>
-                        <option value="">-- No events analyzed yet --</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-
-        <!-- CENTER PANEL -->
-        <div class="plot-container">
-            <div class="card-title" style="margin-bottom: 8px;">
-                Cranking Event Plotter
-                <span style="font-size: 0.7rem; color: var(--accent-gold); text-transform: none;">Zoomed Event View</span>
-            </div>
-            <div class="canvas-wrapper">
-                <canvas id="analysisCanvas"></canvas>
-            </div>
-            
-            <!-- Analysis Playback Controls -->
-            <div class="playback-control-bar">
-                <div class="window-selector">
-                    <label>Window:</label>
-                    <select id="window-size-analysis">
-                        <option value="50">1s (50p)</option>
-                        <option value="150">3s (150p)</option>
-                        <option value="250">5s (250p)</option>
-                        <option value="500">10s (500p)</option>
-                        <option value="all" selected>All Event Data</option>
-                    </select>
-                </div>
-                <div class="slider-container">
-                    <span id="slider-min-analysis">0</span>
-                    <input type="range" id="time-slider-analysis" min="0" max="0" value="0" disabled>
-                    <span id="slider-max-analysis">0</span>
-                </div>
-                <div class="active-packet-indicator">
-                    Selected Packet: <span id="active-packet-val-analysis">-</span>
-                </div>
-            </div>
-            <!-- Dynamic toggles are shared and synchronized between tabs -->
-            <div class="plot-selectors" id="plot-selectors-analysis-container">
-                <!-- Mirrors main review toggles -->
-            </div>
-        </div>
-
-        <!-- POST-PROCESS REPORTS (REPLACES COMMAND TERMINAL) -->
-        <div class="terminal-container">
-            <div class="card-title">Cranking Phase Report</div>
-            <div class="console-out" id="analysis-report-display" style="color: var(--text-main); font-family: monospace;">
---- Load a log and click 'Perform Start Analysis' to isolate cranking phases ---
-            </div>
-        </div>
-
-        <!-- RIGHT SIDEBAR (SHARED SCALERS) -->
-        <div class="right-sidebar">
-            <div class="card" style="flex-shrink: 0;">
-                <div class="card-title">Axis Scalers</div>
-                <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; padding: 10px 0;">
-                    Scaling boundaries carry across both workspace views.
-                </div>
-            </div>
-            <div id="active-scales-list-analysis" style="display: flex; flex-direction: column; gap: 10px; flex-grow: 1; overflow-y: auto;">
-                <!-- Mirrored Scale cards injected here -->
-            </div>
-        </div>
-    </div>
-
 
     <!-- ==================== TAB 3: SYSTEM SETTINGS ==================== -->
     <div class="tab-content-settings" id="panel-settings">
@@ -680,12 +622,10 @@
     </div>
 
     <script>
-        const APP_VERSION = "0.13";
-        // --- CONFIGURATION & TELEMETRY DEFINITION ---
+        const APP_VERSION = "0.14";
         const PACKET_SIZE = 101;
-        const NBR_FLOATS = 23;
         const START_MARKER = 0xAA;
-        
+
         // Master Global Configuration Object
         const CONFIG = {
             pole_pairs: 8.0,
@@ -696,7 +636,7 @@
             stall_accel: -1000.0
         };
 
-        // Shared inner template for our clean Physics Inspector
+        // Shared Physics Inspector Card Template
         const INSPECTOR_TEMPLATE = `
             <div class="card-title">
                 Physics Inspector
@@ -714,8 +654,7 @@
                     <span class="insp-super-state inspector-val" style="color: var(--accent-blue);">-</span>
                 </div>
                 <div class="inspector-row">
-                    <span class="inspector-label">MC State / Ctrl Mode:</span>
-                    <span class="insp-mc-ctrl inspector-val">-</span>
+                    <span class="insp-mc-ctrl inspector-val" style="font-size: 0.72rem; color: var(--text-muted);">-</span>
                 </div>
             </div>
 
@@ -730,7 +669,7 @@
                     <span class="insp-lookup-flux inspector-val">-</span>
                 </div>
                 <div class="inspector-row">
-                    <span class="inspector-label">Inductance Ld / Lq:</span>
+                    <span class="inspector-label">Inductance Ld/Lq:</span>
                     <span class="insp-lookup-ldlq inspector-val">-</span>
                 </div>
                 <div class="inspector-row">
@@ -792,97 +731,9 @@
             </div>
         `;
 
-        // Initialize mirrored Inspector Cards
-        document.getElementById('card-inspector-review').innerHTML = INSPECTOR_TEMPLATE;
-        document.getElementById('card-inspector-analysis').innerHTML = INSPECTOR_TEMPLATE;
-
-        // Active workspace view state variable
-        let activeTab = 'review'; // 'review' | 'analysis' | 'settings'
-
-        function setupTabbedInterface() {
-            const btnReview = document.getElementById('tab-btn-review');
-            const btnAnalysis = document.getElementById('tab-btn-analysis');
-            const btnSettings = document.getElementById('tab-btn-settings');
-
-            const panelReview = document.getElementById('panel-review');
-            const panelAnalysis = document.getElementById('panel-analysis');
-            const panelSettings = document.getElementById('panel-settings');
-
-            function switchView(target) {
-                // Clear active states
-                btnReview.classList.remove('active');
-                btnAnalysis.classList.remove('active');
-                btnSettings.classList.remove('active');
-
-                panelReview.classList.remove('active');
-                panelAnalysis.classList.remove('active');
-                panelSettings.classList.remove('active');
-
-                activeTab = target;
-
-                if (target === 'review') {
-                    btnReview.classList.add('active');
-                    panelReview.classList.add('active');
-                    requestAnimationFrame(drawPlots);
-                } else if (target === 'analysis') {
-                    btnAnalysis.classList.add('active');
-                    panelAnalysis.classList.add('active');
-                    requestAnimationFrame(drawAnalysisPlots); // Draw our analysis canvas
-                } else if (target === 'settings') {
-                    btnSettings.classList.add('active');
-                    panelSettings.classList.add('active');
-                }
-            }
-
-            btnReview.addEventListener('click', () => switchView('review'));
-            btnAnalysis.addEventListener('click', () => switchView('analysis'));
-            btnSettings.addEventListener('click', () => switchView('settings'));
-        }
-
-        // Initialize tab controls on startup
-        setupTabbedInterface();
-
-        // Piecewise lookup table from classicp hardware file
-        const MGU_IF_TABLE = [
-            {
-                lower_bound_if: 2.92,
-                base_flux: 0.01320000, base_ld: 0.0000140900, base_lq: 0.0000243500, base_l: 0.0000192200, base_ld_lq_diff: 0.0000102600,
-                base_inv_ld: 70972.3203125, base_inv_lq: 41067.7617188,
-                slope_flux: 0.00000001, slope_ld: 0.0, slope_lq: 0.0, slope_l: 0.0, slope_ld_lq_diff: 0.0,
-                slope_inv_ld: 0.0, slope_inv_lq: 0.0
-            },
-            {
-                lower_bound_if: 2.00,
-                base_flux: 0.01241000, base_ld: 0.0000160900, base_lq: 0.0000281500, base_l: 0.0000221200, base_ld_lq_diff: 0.0000120600,
-                base_inv_ld: 62150.4023438, base_inv_lq: 35523.9765625,
-                slope_flux: 0.00085870, slope_ld: -0.0000021739, slope_lq: -0.0000041304, slope_l: -0.0000031522, slope_ld_lq_diff: -0.0000019565,
-                slope_inv_ld: 9589.0410156, slope_inv_lq: 6025.8535156
-            },
-            {
-                lower_bound_if: 1.00,
-                base_flux: 0.01008000, base_ld: 0.0000273400, base_lq: 0.0000431600, base_l: 0.0000352500, base_ld_lq_diff: 0.0000158200,
-                base_inv_ld: 36576.4453125, base_inv_lq: 23169.6015625,
-                slope_flux: 0.00233000, slope_ld: -0.0000112500, slope_lq: -0.0000150100, slope_l: -0.0000131300, slope_ld_lq_diff: -0.0000037600,
-                slope_inv_ld: 25573.9570312, slope_inv_lq: 12354.3750000
-            },
-            {
-                lower_bound_if: 0.50,
-                base_flux: 0.00680000, base_ld: 0.0000298550, base_lq: 0.0000461250, base_l: 0.0000379900, base_ld_lq_diff: 0.0000162700,
-                base_inv_ld: 33495.2265625, base_inv_lq: 21680.2167969,
-                slope_flux: 0.00656000, slope_ld: -0.0000050300, slope_lq: -0.0000059300, slope_l: -0.0000054800, slope_ld_lq_diff: -0.0000009000,
-                slope_inv_ld: 6162.4370117, slope_inv_lq: 2978.7695312
-            },
-            {
-                lower_bound_if: 0.00,
-                base_flux: 0.00308000, base_ld: 0.0000301300, base_lq: 0.0000460700, base_l: 0.0000381000, base_ld_lq_diff: 0.0000159400,
-                base_inv_ld: 33189.5117188, base_inv_lq: 21706.0996094,
-                slope_flux: 0.00744000, slope_ld: -0.0000005500, slope_lq: 0.0000001100, slope_l: -0.0000002200, slope_ld_lq_diff: 0.0000006600,
-                slope_inv_ld: 611.4300537, slope_inv_lq: -51.7656250
-            }
-        ];
+        document.getElementById('card-inspector').innerHTML = INSPECTOR_TEMPLATE;
 
         const TELEMETRY_LAYOUT = [
-            // --- Raw Telemetry Inputs ---
             { name: "rpm", label: "Speed (ERPM)", color: "#3b82f6", active: true },
             { name: "accel_avg", label: "Accel (Avg)", color: "#10b981", active: true },
             { name: "accel_mad", label: "Accel (MAD)", color: "#f59e0b", active: false },
@@ -906,8 +757,7 @@
             { name: "speed_target", label: "Speed Target (ERPM)", color: "#0ea5e9", active: false },
             { name: "speed_i_term", label: "Speed I-Term (A)", color: "#fb7185", active: false },
             { name: "i_bus", label: "Battery Current (A)", color: "#e11d48", active: true },
-
-            // --- "Append on Arrival" Derived Parameters ---
+            // Derived Physics Parameters
             { name: "flux", label: "λ Flux (mWb)", color: "#fbbf24", active: false },
             { name: "ld", label: "Ld Inductance (uH)", color: "#2dd4bf", active: false },
             { name: "lq", label: "Lq Inductance (uH)", color: "#f472b6", active: false },
@@ -922,21 +772,34 @@
             { name: "efficiency", label: "System Efficiency (%)", color: "#e879f9", active: false }
         ];
 
-        // --- GLOBAL STATE ---
+        // Piecewise lookup table from classicp hardware configuration
+        const MGU_IF_TABLE = [
+            { lower_bound_if: 2.92, base_flux: 0.01320000, base_ld: 0.0000140900, base_lq: 0.0000243500, base_l: 0.0000192200, base_ld_lq_diff: 0.0000102600, base_inv_ld: 70972.3203125, base_inv_lq: 41067.7617188, slope_flux: 0.00000001, slope_ld: 0.0, slope_lq: 0.0, slope_l: 0.0, slope_ld_lq_diff: 0.0, slope_inv_ld: 0.0, slope_inv_lq: 0.0 },
+            { lower_bound_if: 2.00, base_flux: 0.01241000, base_ld: 0.0000160900, base_lq: 0.0000281500, base_l: 0.0000221200, base_ld_lq_diff: 0.0000120600, base_inv_ld: 62150.4023438, base_inv_lq: 35523.9765625, slope_flux: 0.00085870, slope_ld: -0.0000021739, slope_lq: -0.0000041304, slope_l: -0.0000031522, slope_ld_lq_diff: -0.0000019565, slope_inv_ld: 9589.0410156, slope_inv_lq: 6025.8535156 },
+            { lower_bound_if: 1.00, base_flux: 0.01008000, base_ld: 0.0000273400, base_lq: 0.0000431600, base_l: 0.0000352500, base_ld_lq_diff: 0.0000158200, base_inv_ld: 36576.4453125, base_inv_lq: 23169.6015625, slope_flux: 0.00233000, slope_ld: -0.0000112500, slope_lq: -0.0000150100, slope_l: -0.0000131300, slope_ld_lq_diff: -0.0000037600, slope_inv_ld: 25573.9570312, slope_inv_lq: 12354.3750000 },
+            { lower_bound_if: 0.50, base_flux: 0.00680000, base_ld: 0.0000298550, base_lq: 0.0000461250, base_l: 0.0000379900, base_ld_lq_diff: 0.0000162700, base_inv_ld: 33495.2265625, base_inv_lq: 21680.2167969, slope_flux: 0.00656000, slope_ld: -0.0000050300, slope_lq: -0.0000059300, slope_l: -0.0000054800, slope_ld_lq_diff: -0.0000009000, slope_inv_ld: 6162.4370117, slope_inv_lq: 2978.7695312 },
+            { lower_bound_if: 0.00, base_flux: 0.00308000, base_ld: 0.0000301300, base_lq: 0.0000460700, base_l: 0.0000381000, base_ld_lq_diff: 0.0000159400, base_inv_ld: 33189.5117188, base_inv_lq: 21706.0996094, slope_flux: 0.00744000, slope_ld: -0.0000005500, slope_lq: 0.0000001100, slope_l: -0.0000002200, slope_ld_lq_diff: 0.0000006600, slope_inv_ld: 611.4300537, slope_inv_lq: -51.7656250 }
+        ];
+
+        // --- GLOBAL WORKSPACE STATE ---
         let port = null;
         let reader = null;
         let rxBuffer = new Uint8Array(0);
-        let telemetryData = [];  // Central historical database
-        
+        let telemetryData = [];             // Single Master Array of Telemetry Frames
         let lastPacketId = null;
         let totalLostPackets = 0;
         let totalReceivedPackets = 0;
-
         let liveFollowMode = true;
-        let selectedIndex = null; // Mouse hover/scrub selection index
+        let selectedIndex = null;           // Temporary hover/scrub selector index (Review Tab)
+        let selectedAnalysisIndex = null;   // Temporary hover selector index (Analysis Tab)
         let mouseX = null;
+        let activeTab = 'review';           // 'review' | 'analysis' | 'settings'
 
-        // UI Handles
+        // Detected start events database
+        let detectedEvents = [];
+        let selectedEventIndex = -1;
+
+        // --- UI DOM HANDLES ---
         const btnConnect = document.getElementById('btn-connect');
         const termInput = document.getElementById('terminal-input');
         const btnSend = document.getElementById('btn-send');
@@ -950,12 +813,11 @@
         const sliderMinLabel = document.getElementById('slider-min');
         const sliderMaxLabel = document.getElementById('slider-max');
         const activePacketLabel = document.getElementById('active-packet-val');
-        
 
-        // --- DYNAMIC VALUE LOOKUPS & MATHEMATICAL DERIVATIONS ---
+        // --- Ortega Lookup Math ---
         function wrsmLookup(ifVal) {
             if (ifVal <= 0.0) ifVal = 0.0;
-            let targetRow = MGU_IF_TABLE.length - 1; // Floor row 4
+            let targetRow = MGU_IF_TABLE.length - 1;
             for (let i = 0; i < MGU_IF_TABLE.length - 1; i++) {
                 if (MGU_IF_TABLE[i].lower_bound_if <= ifVal) {
                     targetRow = i;
@@ -965,62 +827,33 @@
             const row = MGU_IF_TABLE[targetRow];
             let delta = ifVal - row.lower_bound_if;
             if (delta < 0.0) delta = 0.0;
-
             return {
                 flux: row.base_flux + (delta * row.slope_flux),
-                ld: (row.base_ld + (delta * row.slope_ld)) * 1e6, // uH
-                lq: (row.base_lq + (delta * row.slope_lq)) * 1e6, // uH
-                l: (row.base_l + (delta * row.slope_l)) * 1e6,     // uH
-                ld_lq_diff: (row.base_ld_lq_diff + (delta * row.slope_ld_lq_diff)) * 1e6 // uH
+                ld: (row.base_ld + (delta * row.slope_ld)) * 1e6,
+                lq: (row.base_lq + (delta * row.slope_lq)) * 1e6,
+                l: (row.base_l + (delta * row.slope_l)) * 1e6,
+                ld_lq_diff: (row.base_ld_lq_diff + (delta * row.slope_ld_lq_diff)) * 1e6
             };
         }
-
-        function applyConfigSettings() {
-            CONFIG.pole_pairs   = parseFloat(document.getElementById('cfg-poles').value) || 8.0;
-            CONFIG.field_r_ohms = parseFloat(document.getElementById('cfg-rfield').value) || 5.60;
-            CONFIG.handoff_erpm = parseFloat(document.getElementById('cfg-handoff-erpm').value) || 900.0;
-            CONFIG.target_erpm  = parseFloat(document.getElementById('cfg-target-erpm').value) || 4800.0;
-            CONFIG.stall_erpm   = parseFloat(document.getElementById('cfg-stall-erpm').value) || 2000.0;
-            CONFIG.stall_accel  = parseFloat(document.getElementById('cfg-stall-accel').value) || -1000.0;
-            
-            consoleDisplay.innerText += `--- Settings Applied: PP=${CONFIG.pole_pairs}, Rfield=${CONFIG.field_r_ohms}Ω, Handoff=${CONFIG.handoff_erpm} ERPM ---\n`;
-            consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
-
-            // Re-draw any existing loaded/simulated plots using the updated physics configuration
-            if (telemetryData.length > 0) {
-                // Recalculate derived physics parameters for all stored samples using new config
-                telemetryData.forEach(d => {
-                    const derived = runPhysicsMath(d);
-                    Object.assign(d, derived);
-                });
-                requestAnimationFrame(drawPlots);
-            }
-        }
-
-        document.getElementById('btn-apply-settings').addEventListener('click', applyConfigSettings);
-
 
         function runPhysicsMath(d) {
             const lookup = wrsmLookup(d.if_avg);
             const flux_wb = lookup.flux;
-            const ldiff_h = lookup.ld_lq_diff * 1e-6; // Translate µH back to Henrys
+            const ldiff_h = lookup.ld_lq_diff * 1e-6;
             
-            // Torque split calculations
+            // FOC Electromechanical Equations
             const t_mag = 1.5 * CONFIG.pole_pairs * flux_wb * d.iq_avg;
             const t_rel = -1.5 * CONFIG.pole_pairs * ldiff_h * d.id_avg * d.iq_avg;
             const t_total = t_mag + t_rel;
 
-            // Mechanical Shaft Angular Velocity
             const rpm_mech = d.rpm / CONFIG.pole_pairs;
             const omega_mech = rpm_mech * (2.0 * Math.PI / 60.0);
             const power_mech = t_total * omega_mech;
 
-            // System Electrical Power Expenditures
             const power_rotor = Math.pow(d.if_avg, 2) * CONFIG.field_r_ohms;
             const power_stator = d.vbus_avg * d.i_bus;
             const power_elec_total = power_stator + power_rotor;
 
-            // System Efficiency Assessment
             let efficiency = 0.0;
             let opMode = "STANDBY";
 
@@ -1035,7 +868,7 @@
             }
 
             return {
-                flux: flux_wb * 1000.0, // mWb for nice graphing
+                flux: flux_wb * 1000.0,
                 ld: lookup.ld,
                 lq: lookup.lq,
                 ld_lq_diff: lookup.ld_lq_diff,
@@ -1051,7 +884,98 @@
             };
         }
 
-        // --- THE INTERACTIVE PLAYBACK TIMELINE CONTROL SYSTEM ---
+        function applyConfigSettings() {
+            CONFIG.pole_pairs   = parseFloat(document.getElementById('cfg-poles').value) || 8.0;
+            CONFIG.field_r_ohms = parseFloat(document.getElementById('cfg-rfield').value) || 5.60;
+            CONFIG.handoff_erpm = parseFloat(document.getElementById('cfg-handoff-erpm').value) || 1000.0;
+            CONFIG.target_erpm  = parseFloat(document.getElementById('cfg-target-erpm').value) || 4800.0;
+            CONFIG.stall_erpm   = parseFloat(document.getElementById('cfg-stall-erpm').value) || 2000.0;
+            CONFIG.stall_accel  = parseFloat(document.getElementById('cfg-stall-accel').value) || -1000.0;
+
+            consoleDisplay.innerText += `--- Settings Applied: PP=${CONFIG.pole_pairs}, Rfield=${CONFIG.field_r_ohms}Ω ---\n`;
+            consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
+
+            if (telemetryData.length > 0) {
+                telemetryData.forEach(d => {
+                    const derived = runPhysicsMath(d);
+                    Object.assign(d, derived);
+                });
+                requestAnimationFrame(drawPlots);
+            }
+        }
+
+        document.getElementById('btn-apply-settings').addEventListener('click', applyConfigSettings);
+
+        // --- Tab Switching Controller (Consolidated Single Layout Grid) ---
+        function setupTabbedInterface() {
+            const btnReview = document.getElementById('tab-btn-review');
+            const btnAnalysis = document.getElementById('tab-btn-analysis');
+            const btnSettings = document.getElementById('tab-btn-settings');
+
+            const dashboard = document.getElementById('main-dashboard');
+            const settingsPanel = document.getElementById('panel-settings');
+
+            function switchView(target) {
+                btnReview.classList.remove('active');
+                btnAnalysis.classList.remove('active');
+                btnSettings.classList.remove('active');
+
+                activeTab = target;
+
+                if (target === 'settings') {
+                    btnSettings.classList.add('active');
+                    dashboard.classList.add('hidden');
+                    settingsPanel.classList.add('active');
+                    return;
+                }
+
+                dashboard.classList.remove('hidden');
+                settingsPanel.classList.remove('active');
+
+                const cardFileOps = document.getElementById('card-file-ops');
+                const cardAnalysisEvents = document.getElementById('card-analysis-events');
+                const cardTerminal = document.getElementById('card-terminal');
+                const cardCrankReport = document.getElementById('card-crank-report');
+                const liveToggleContainer = document.getElementById('container-live-toggle');
+
+                if (target === 'review') {
+                    btnReview.classList.add('active');
+                    cardFileOps.classList.remove('hidden');
+                    cardAnalysisEvents.classList.add('hidden');
+                    cardTerminal.classList.remove('hidden');
+                    cardCrankReport.classList.add('hidden');
+                    liveToggleContainer.classList.remove('hidden');
+
+                    updateTimelineSliders();
+                    requestAnimationFrame(drawPlots);
+                } else if (target === 'analysis') {
+                    btnAnalysis.classList.add('active');
+                    cardFileOps.classList.add('hidden');
+                    cardAnalysisEvents.classList.remove('hidden');
+                    cardTerminal.classList.add('hidden');
+                    cardCrankReport.classList.remove('hidden');
+                    liveToggleContainer.classList.add('hidden');
+
+                    liveFollowMode = false;
+                    liveToggle.checked = false;
+
+                    if (selectedEventIndex !== -1 && detectedEvents.length > 0) {
+                        loadAnalysisEvent(selectedEventIndex);
+                    } else {
+                        updateTimelineSliders();
+                        requestAnimationFrame(drawPlots);
+                    }
+                }
+            }
+
+            btnReview.addEventListener('click', () => switchView('review'));
+            btnAnalysis.addEventListener('click', () => switchView('analysis'));
+            btnSettings.addEventListener('click', () => switchView('settings'));
+        }
+
+        setupTabbedInterface();
+
+        // --- Playback Slider Manager ---
         function updateTimelineSliders() {
             const count = telemetryData.length;
             if (count === 0) {
@@ -1061,29 +985,41 @@
                 return;
             }
 
-            timeSlider.max = count - 1;
-            
-            if (liveFollowMode) {
-                timeSlider.value = count - 1;
-                timeSlider.disabled = true;
-            } else {
+            if (activeTab === 'review') {
+                timeSlider.max = count - 1;
+                if (liveFollowMode) {
+                    timeSlider.value = count - 1;
+                    timeSlider.disabled = true;
+                } else {
+                    timeSlider.disabled = false;
+                }
+                const activeIdx = getActiveIndex();
+                const activeSample = telemetryData[activeIdx];
+                activePacketLabel.innerText = activeSample ? activeSample.packet_id : "-";
+                updateInspector(activeSample);
+            } else if (activeTab === 'analysis') {
+                if (selectedEventIndex === -1 || detectedEvents.length === 0) {
+                    timeSlider.max = 0;
+                    timeSlider.value = 0;
+                    timeSlider.disabled = true;
+                    return;
+                }
+                const ev = detectedEvents[selectedEventIndex];
+                const totalPoints = ev.endIndex - ev.startIndex;
+                timeSlider.max = totalPoints;
                 timeSlider.disabled = false;
-            }
 
-            sliderMinLabel.innerText = "0";
-            sliderMaxLabel.innerText = count - 1;
-            
-            const activeIdx = getActiveIndex();
-            const activeSample = telemetryData[activeIdx];
-            activePacketLabel.innerText = activeSample ? activeSample.packet_id : "-";
-            updateInspector(activeSample);
+                const sliderVal = parseInt(timeSlider.value) || 0;
+                const cursorIdx = ev.startIndex + sliderVal;
+                const activeSample = telemetryData[cursorIdx];
+                activePacketLabel.innerText = activeSample ? activeSample.packet_id : "-";
+                updateInspector(activeSample);
+            }
         }
 
         function getActiveIndex() {
-            if (selectedIndex !== null) {
-                return selectedIndex;
-            }
-            return parseInt(timeSlider.value);
+            if (selectedIndex !== null) return selectedIndex;
+            return parseInt(timeSlider.value) || 0;
         }
 
         liveToggle.addEventListener('change', (e) => {
@@ -1093,7 +1029,8 @@
         });
 
         timeSlider.addEventListener('input', () => {
-            selectedIndex = null; // Clear hover lock if user drags timeline
+            selectedIndex = null;
+            selectedAnalysisIndex = null;
             updateTimelineSliders();
             requestAnimationFrame(drawPlots);
         });
@@ -1102,59 +1039,16 @@
             requestAnimationFrame(drawPlots);
         });
 
-        // --- INTERACTIVE CANVAS HOVER INSPECTION ---
-        canvas.addEventListener('mousemove', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            mouseX = e.clientX - rect.left;
-            const maxPoints = getWindowSizePoints();
-            const count = telemetryData.length;
-            if (count === 0) return;
-
-            let endIndex = liveFollowMode ? count : parseInt(timeSlider.value) + 1;
-            let startIndex = maxPoints === "all" ? 0 : Math.max(0, endIndex - parseInt(maxPoints));
-            let viewLength = endIndex - startIndex;
-            if (viewLength <= 0) return;
-
-            // Map mouseX directly to index in activeSlice
-            const hoverPct = mouseX / canvas.width;
-            let sliceIdx = Math.round(hoverPct * (viewLength - 1));
-            sliceIdx = Math.max(0, Math.min(viewLength - 1, sliceIdx));
-            selectedIndex = startIndex + sliceIdx;
-
-            // Synchronously update status across both tabs
-            updateInspectingStatus(`[Inspecting Pt: ${selectedIndex}]`, "var(--accent-gold)");
-            updateTimelineSliders();
-            requestAnimationFrame(drawPlots);
-        });
-
-        canvas.addEventListener('mouseleave', () => {
-            mouseX = null;
-            selectedIndex = null;
-
-            // Synchronously reset status across both tabs
-            updateInspectingStatus(
-                liveFollowMode ? "[Live]" : "[Paused]", 
-                liveFollowMode ? "var(--accent-green)" : "var(--accent-blue)"
-            );
-            updateTimelineSliders();
-            requestAnimationFrame(drawPlots);
-        });
-
         function getWindowSizePoints() {
             return windowSelect.value;
         }
 
-        // Helper to update the Gold status text (e.g. [Live], [Inspecting Pt: 245]) across both cards
         function updateInspectingStatus(statusText, color) {
-            ['review', 'analysis'].forEach(tab => {
-                const card = document.getElementById(`card-inspector-${tab}`);
-                if (!card) return;
-                const el = card.querySelector('.inspecting-status');
-                if (el) {
-                    el.innerText = statusText;
-                    if (color) el.style.color = color;
-                }
-            });
+            const el = document.getElementById('card-inspector').querySelector('.inspecting-status');
+            if (el) {
+                el.innerText = statusText;
+                if (color) el.style.color = color;
+            }
         }
 
         function updateInspector(sample) {
@@ -1163,14 +1057,13 @@
             const phy = runPhysicsMath(sample);
             const tracking_error = sample.speed_target - sample.rpm;
 
-            // Map all target selectors to values
             const updates = {
                 'insp-packet-id': sample.packet_id,
                 'insp-super-state': `${getSuperStateName(sample.super_state)} (${sample.super_state})`,
                 'insp-mc-ctrl': `MC: ${getMCStateName(sample.mc_state)} | Ctrl: ${getCtrlModeName(sample.ctrl_mode)}`,
                 'insp-if': sample.if_avg.toFixed(2) + " A",
                 'insp-lookup-flux': phy.flux.toFixed(2) + " mWb",
-                'insp-lookup-ldlq': `Ld: ${phy.ld.toFixed(1)} uH | Lq: ${phy.lq.toFixed(1)} uH`,
+                'insp-lookup-ldlq': `Ld: ${phy.ld.toFixed(1)} | Lq: ${phy.lq.toFixed(1)} uH`,
                 'insp-lookup-saliency': phy.ld_lq_diff.toFixed(1) + " uH",
                 'insp-torque-split': `Mag: ${phy.t_mag.toFixed(1)} | Rel: ${phy.t_rel.toFixed(1)} Nm`,
                 'insp-torque-total': phy.t_total.toFixed(1) + " Nm",
@@ -1185,46 +1078,39 @@
                 'insp-ibus': sample.i_bus.toFixed(1) + " A"
             };
 
-            // Propagate updates to both left-sidebar cards simultaneously
-            ['review', 'analysis'].forEach(tab => {
-                const card = document.getElementById(`card-inspector-${tab}`);
-                if (!card) return;
-
-                Object.keys(updates).forEach(className => {
-                    const el = card.querySelector('.' + className);
-                    if (el) el.innerText = updates[className];
-                });
-
-                // Set warning colors for tracking errors under load
-                const errorEl = card.querySelector('.insp-speed-error');
-                if (errorEl) {
-                    if (Math.abs(tracking_error) > 200.0 && sample.super_state === 4) {
-                        errorEl.style.color = "var(--accent-red)";
-                    } else {
-                        errorEl.style.color = "var(--text-main)";
-                    }
-                }
+            const card = document.getElementById('card-inspector');
+            Object.keys(updates).forEach(className => {
+                const el = card.querySelector('.' + className);
+                if (el) el.innerText = updates[className];
             });
+
+            const errorEl = card.querySelector('.insp-speed-error');
+            if (errorEl) {
+                if (Math.abs(tracking_error) > 200.0 && sample.super_state === 4) {
+                    errorEl.style.color = "var(--accent-red)";
+                } else {
+                    errorEl.style.color = "var(--text-main)";
+                }
+            }
         }
 
-        // --- Helper Translation Enums ---
         function getSuperStateName(val) {
             const states = ["OFF", "BOOT", "STOPPING", "PRE_EXCITE", "CRANKING", "ALTERNATOR", "STALL_CATCH", "FAULT", "ESTOP"];
             return states[val] || "UNKNOWN";
         }
+
         function getMCStateName(val) {
             const states = ["OFF", "DETECTING", "RUNNING", "FULL_BRAKE"];
             return states[val] || "UNKNOWN";
         }
+
         function getCtrlModeName(val) {
             const modes = ["DUTY", "SPEED", "CURRENT", "BRAKE", "POS", "HANDBRAKE", "OPENLOOP", "OPENLOOP_PH", "OPEN_DT", "OPEN_DT_PH", "NONE"];
             return modes[val] || "UNKNOWN";
         }
 
-        // --- FAST 2D CANVAS SCROLLING PLOTTER ---
+        // --- Dynamic Multi-Mode Fast Plotter Engine ---
         function drawPlots() {
-            if (telemetryData.length === 0) return;
-
             canvas.width = canvas.offsetWidth;
             canvas.height = canvas.offsetHeight;
             const w = canvas.width;
@@ -1232,7 +1118,7 @@
 
             ctx.clearRect(0, 0, w, h);
 
-            // Draw Gridlines
+            // Draw Background Grid
             ctx.strokeStyle = "#1e293b";
             ctx.lineWidth = 1;
             for (let gridX = 0; gridX < w; gridX += w / 10) {
@@ -1242,18 +1128,90 @@
                 ctx.beginPath(); ctx.moveTo(0, gridY); ctx.lineTo(w, gridY); ctx.stroke();
             }
 
-            const maxPoints = getWindowSizePoints();
+            if (telemetryData.length === 0) {
+                ctx.fillStyle = "var(--text-muted)";
+                ctx.font = "14px sans-serif";
+                ctx.textAlign = "center";
+                if (activeTab === 'analysis') {
+                    ctx.fillText("Ready to analyze starts. Load a log and click 'Perform Start Analysis'.", w / 2, h / 2);
+                } else {
+                    ctx.fillText("Diagnostics Offline. Connect serial or load a diagnostic log.", w / 2, h / 2);
+                }
+                return;
+            }
+
             const count = telemetryData.length;
-            let endIndex = liveFollowMode ? count : parseInt(timeSlider.value) + 1;
-            let startIndex = maxPoints === "all" ? 0 : Math.max(0, endIndex - parseInt(maxPoints));
-            
+            const maxPoints = getWindowSizePoints();
+
+            let startIndex = 0;
+            let endIndex = count;
+            let playheadIdx = count - 1;
+
+            if (activeTab === 'review') {
+                endIndex = liveFollowMode ? count : parseInt(timeSlider.value) + 1;
+                startIndex = maxPoints === "all" ? 0 : Math.max(0, endIndex - parseInt(maxPoints));
+                playheadIdx = getActiveIndex();
+            } else if (activeTab === 'analysis') {
+                if (selectedEventIndex === -1 || detectedEvents.length === 0) {
+                    ctx.fillStyle = "var(--text-muted)";
+                    ctx.font = "14px sans-serif";
+                    ctx.textAlign = "center";
+                    ctx.fillText("Select a starting event from the dropdown card to slice.", w / 2, h / 2);
+                    return;
+                }
+
+                const ev = detectedEvents[selectedEventIndex];
+                const sliderVal = parseInt(timeSlider.value) || 0;
+                playheadIdx = ev.startIndex + sliderVal;
+
+                if (maxPoints === "all") {
+                    startIndex = ev.startIndex;
+                    endIndex = ev.endIndex + 1;
+                } else {
+                    const W = parseInt(maxPoints);
+                    const halfW = Math.floor(W / 2);
+                    startIndex = playheadIdx - halfW;
+                    endIndex = startIndex + W;
+
+                    // Clamp to stay inside isolated boundaries
+                    if (startIndex < ev.startIndex) {
+                        startIndex = ev.startIndex;
+                        endIndex = Math.min(ev.endIndex + 1, startIndex + W);
+                    }
+                    if (endIndex > ev.endIndex + 1) {
+                        endIndex = ev.endIndex + 1;
+                        startIndex = Math.max(ev.startIndex, endIndex - W);
+                    }
+                }
+            }
+
+            // Draw limits labels
+            sliderMinLabel.innerText = `Pt:${startIndex}`;
+            sliderMaxLabel.innerText = `Pt:${endIndex - 1}`;
+
             const activeSlice = telemetryData.slice(startIndex, endIndex);
             if (activeSlice.length <= 1) return;
 
+            const visibleRange = (endIndex - 1) - startIndex;
+
+            // Draw Phase Transition Markers
+            if (activeTab === 'analysis') {
+                const ev = detectedEvents[selectedEventIndex];
+                if (ev.crankingStartIndex >= startIndex && ev.crankingStartIndex < endIndex) {
+                    const crankMarkerX = ((ev.crankingStartIndex - startIndex) / visibleRange) * w;
+                    ctx.strokeStyle = "var(--accent-gold)";
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath(); ctx.moveTo(crankMarkerX, 0); ctx.lineTo(crankMarkerX, h); ctx.stroke();
+                    ctx.fillStyle = "var(--accent-gold)";
+                    ctx.font = "bold 9px sans-serif";
+                    ctx.fillText("CRANK START RAMP", crankMarkerX + 6, 25);
+                }
+            }
+
+            // Plot active lines
             TELEMETRY_LAYOUT.forEach(v => {
                 if (!v.active) return;
 
-                // Find active slice boundaries
                 let minVal = Infinity;
                 let maxVal = -Infinity;
 
@@ -1263,18 +1221,8 @@
                     if (val > maxVal) maxVal = val;
                 });
 
-                // Update the Slice readouts inside the Sidebar cards dynamically
-                const sliceMinEl = document.getElementById(`review-scale-slice-min-${v.name}`);
-                const sliceMaxEl = document.getElementById(`review-scale-slice-max-${v.name}`);
-                if (sliceMinEl && sliceMaxEl) {
-                    sliceMinEl.innerText = minVal !== Infinity ? minVal.toFixed(1) : "-";
-                    sliceMaxEl.innerText = maxVal !== Infinity ? maxVal.toFixed(1) : "-";
-                }
-
-                // Determine active plot scaling limits
                 let plotMin, plotMax;
                 if (v.autoScale !== false) {
-                    // Auto cushion scaling
                     const range = maxVal - minVal;
                     plotMin = minVal - range * 0.05;
                     plotMax = maxVal + range * 0.05;
@@ -1283,12 +1231,17 @@
                         plotMax += 1;
                     }
                 } else {
-                    // Lock to user manual overrides
                     plotMin = v.manualMin;
                     plotMax = v.manualMax;
                 }
 
-                // Plot Line Path
+                const sliceMinEl = document.getElementById(`scale-slice-min-${v.name}`);
+                const sliceMaxEl = document.getElementById(`scale-slice-max-${v.name}`);
+                if (sliceMinEl && sliceMaxEl) {
+                    sliceMinEl.innerText = minVal !== Infinity ? minVal.toFixed(1) : "-";
+                    sliceMaxEl.innerText = maxVal !== Infinity ? maxVal.toFixed(1) : "-";
+                }
+
                 ctx.beginPath();
                 ctx.strokeStyle = v.color;
                 ctx.lineWidth = 2;
@@ -1300,616 +1253,222 @@
                     else ctx.lineTo(x, y);
                 });
                 ctx.stroke();
-
-                // Plot limits overlay
-                ctx.fillStyle = v.color;
-                ctx.font = "9px sans-serif";
-                ctx.fillText(`${v.label} Limits: [${plotMin.toFixed(1)}, ${plotMax.toFixed(1)}]`, 10, 15 + TELEMETRY_LAYOUT.indexOf(v) * 12);
             });
 
-            // Draw vertical hover/scrub cursor line if mouse is active
-            const activeIdx = getActiveIndex();
-            if (activeIdx >= startIndex && activeIdx < endIndex) {
-                const sliceIdx = activeIdx - startIndex;
-                const cursorX = (sliceIdx / (activeSlice.length - 1)) * w;
-                
+            // 1. Draw physical playhead line (vertical blue)
+            if (playheadIdx >= startIndex && playheadIdx < endIndex) {
+                const playheadX = ((playheadIdx - startIndex) / visibleRange) * w;
+                ctx.strokeStyle = "var(--accent-blue)";
+                ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(playheadX, 0); ctx.lineTo(playheadX, h); ctx.stroke();
+            }
+
+            // 2. Draw temporary hover line (vertical gold)
+            const activeHoverIdx = (activeTab === 'review') ? selectedIndex : selectedAnalysisIndex;
+            if (activeHoverIdx !== null && activeHoverIdx >= startIndex && activeHoverIdx < endIndex) {
+                const hoverX = ((activeHoverIdx - startIndex) / visibleRange) * w;
                 ctx.strokeStyle = "var(--accent-gold)";
                 ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(cursorX, 0);
-                ctx.lineTo(cursorX, h);
-                ctx.stroke();
-                
+                ctx.beginPath(); ctx.moveTo(hoverX, 0); ctx.lineTo(hoverX, h); ctx.stroke();
+
                 ctx.fillStyle = "var(--accent-gold)";
                 ctx.font = "bold 9px monospace";
-                ctx.fillText(`Pt:${telemetryData[activeIdx].packet_id}`, cursorX + 4, h - 10);
+                ctx.fillText(`Pt:${telemetryData[activeHoverIdx].packet_id}`, hoverX + 4, h - 10);
             }
         }
 
-        // --- Generates, updates, or destroys right-sidebar scale cards on-demand ---
+        // --- Dynamic Scale Cards System ---
         function syncScaleCards() {
-            ['review', 'analysis'].forEach(tab => {
-                const container = document.getElementById(tab === 'review' ? 'active-scales-list' : 'active-scales-list-analysis');
-                if (!container) return;
+            const container = document.getElementById('active-scales-list');
+            if (!container) return;
 
-                TELEMETRY_LAYOUT.forEach(v => {
-                    let card = document.getElementById(`${tab}-scale-card-${v.name}`);
-                    
-                    if (v.active) {
-                        if (!card) {
-                            // Safe starting defaults based on variable domain types
-                            if (v.autoScale === undefined) v.autoScale = true;
-                            if (v.manualMin === undefined) {
-                                if (v.name === "rpm") v.manualMin = 0;
-                                else if (v.name.includes("duty") || v.name.includes("pwm")) v.manualMin = 0.0;
-                                else if (v.name.includes("vbus")) v.manualMin = 0.0;
-                                else if (v.name.includes("efficiency")) v.manualMin = 0.0;
-                                else v.manualMin = -50;
-                            }
-                            if (v.manualMax === undefined) {
-                                if (v.name === "rpm") v.manualMax = 6000;
-                                else if (v.name.includes("duty") || v.name.includes("pwm")) v.manualMax = 1.0;
-                                else if (v.name.includes("vbus")) v.manualMax = 16.0;
-                                else if (v.name.includes("efficiency")) v.manualMax = 100.0;
-                                else if (v.name.includes("iterm") || v.name.includes("iq")) v.manualMax = 150.0;
-                                else if (v.name.includes("i_bus")) v.manualMax = 100.0;
-                                else v.manualMax = 50;
-                            }
-
-                            // Generate separate prefixed card
-                            card = document.createElement('div');
-                            card.className = "scale-card";
-                            card.id = `${tab}-scale-card-${v.name}`;
-                            card.style.borderLeft = `4px solid ${v.color}`;
-                            card.innerHTML = `
-                                <div class="scale-header" style="color: ${v.color};">
-                                    <span>● ${v.label}</span>
-                                    <label style="display: inline-flex; align-items: center; gap: 3px; cursor: pointer; margin: 0;">
-                                        <input type="checkbox" id="${tab}-scale-auto-${v.name}" ${v.autoScale ? 'checked' : ''} style="width: auto; margin: 0;"> Auto
-                                    </label>
-                                </div>
-                                <div class="scale-row">
-                                    <span class="scale-slice-info">Visible: [<span id="${tab}-scale-slice-min-${v.name}">-</span>, <span id="${tab}-scale-slice-max-${v.name}">-</span>]</span>
-                                </div>
-                                <div class="scale-inputs">
-                                    <div>
-                                        <label>Min</label>
-                                        <input type="number" step="any" id="${tab}-scale-input-min-${v.name}" value="${v.manualMin}" ${v.autoScale ? 'disabled' : ''}>
-                                    </div>
-                                    <div>
-                                        <label>Max</label>
-                                        <input type="number" step="any" id="${tab}-scale-input-max-${v.name}" value="${v.manualMax}" ${v.autoScale ? 'disabled' : ''}>
-                                    </div>
-                                </div>
-                            `;
-                            container.appendChild(card);
-
-                            // Bind events with mutual synchronization across sidebars
-                            const autoCheck = card.querySelector(`#${tab}-scale-auto-${v.name}`);
-                            const minInput = card.querySelector(`#${tab}-scale-input-min-${v.name}`);
-                            const maxInput = card.querySelector(`#${tab}-scale-input-max-${v.name}`);
-
-                            autoCheck.addEventListener('change', (e) => {
-                                const isChecked = e.target.checked;
-                                v.autoScale = isChecked;
-
-                                const otherTab = tab === 'review' ? 'analysis' : 'review';
-                                const otherAuto = document.getElementById(`${otherTab}-scale-auto-${v.name}`);
-                                const otherMin = document.getElementById(`${otherTab}-scale-input-min-${v.name}`);
-                                const otherMax = document.getElementById(`${otherTab}-scale-input-max-${v.name}`);
-
-                                if (otherAuto) otherAuto.checked = isChecked;
-                                if (otherMin) otherMin.disabled = isChecked;
-                                if (otherMax) otherMax.disabled = isChecked;
-
-                                minInput.disabled = isChecked;
-                                maxInput.disabled = isChecked;
-
-                                triggerActivePlotRedraw();
-                            });
-
-                            minInput.addEventListener('input', (e) => {
-                                const val = parseFloat(e.target.value) || 0;
-                                v.manualMin = val;
-
-                                const otherTab = tab === 'review' ? 'analysis' : 'review';
-                                const otherInput = document.getElementById(`${otherTab}-scale-input-min-${v.name}`);
-                                if (otherInput) otherInput.value = val;
-
-                                triggerActivePlotRedraw();
-                            });
-
-                            maxInput.addEventListener('input', (e) => {
-                                const val = parseFloat(e.target.value) || 0;
-                                v.manualMax = val;
-
-                                const otherTab = tab === 'review' ? 'analysis' : 'review';
-                                const otherInput = document.getElementById(`${otherTab}-scale-input-max-${v.name}`);
-                                if (otherInput) otherInput.value = val;
-
-                                triggerActivePlotRedraw();
-                            });
+            TELEMETRY_LAYOUT.forEach(v => {
+                let card = document.getElementById(`scale-card-${v.name}`);
+                
+                if (v.active) {
+                    if (!card) {
+                        if (v.autoScale === undefined) v.autoScale = true;
+                        if (v.manualMin === undefined) {
+                            if (v.name === "rpm") v.manualMin = 0;
+                            else if (v.name.includes("duty") || v.name.includes("pwm")) v.manualMin = 0.0;
+                            else if (v.name.includes("vbus")) v.manualMin = 0.0;
+                            else if (v.name.includes("efficiency")) v.manualMin = 0.0;
+                            else v.manualMin = -50;
                         }
-                    } else {
-                        if (card) card.remove();
+                        if (v.manualMax === undefined) {
+                            if (v.name === "rpm") v.manualMax = 6000;
+                            else if (v.name.includes("duty") || v.name.includes("pwm")) v.manualMax = 1.0;
+                            else if (v.name.includes("vbus")) v.manualMax = 16.0;
+                            else if (v.name.includes("efficiency")) v.manualMax = 100.0;
+                            else if (v.name.includes("iterm") || v.name.includes("iq")) v.manualMax = 150.0;
+                            else if (v.name.includes("i_bus")) v.manualMax = 100.0;
+                            else v.manualMax = 50;
+                        }
+
+                        card = document.createElement('div');
+                        card.className = "scale-card";
+                        card.id = `scale-card-${v.name}`;
+                        card.style.borderLeft = `4px solid ${v.color}`;
+                        card.innerHTML = `
+                            <div class="scale-header" style="color: ${v.color};">
+                                <span>● ${v.label}</span>
+                                <label style="display: inline-flex; align-items: center; gap: 3px; cursor: pointer; margin: 0;">
+                                    <input type="checkbox" id="scale-auto-${v.name}" ${v.autoScale ? 'checked' : ''} style="width: auto; margin: 0;"> Auto
+                                </label>
+                            </div>
+                            <div class="scale-row">
+                                <span class="scale-slice-info">Visible: [<span id="scale-slice-min-${v.name}">-</span>, <span id="scale-slice-max-${v.name}">-</span>]</span>
+                            </div>
+                            <div class="scale-inputs">
+                                <div>
+                                    <label>Min</label>
+                                    <input type="number" step="any" id="scale-input-min-${v.name}" value="${v.manualMin}" ${v.autoScale ? 'disabled' : ''}>
+                                </div>
+                                <div>
+                                    <label>Max</label>
+                                    <input type="number" step="any" id="scale-input-max-${v.name}" value="${v.manualMax}" ${v.autoScale ? 'disabled' : ''}>
+                                </div>
+                            </div>
+                        `;
+                        container.appendChild(card);
+
+                        const autoCheck = card.querySelector(`#scale-auto-${v.name}`);
+                        const minInput = card.querySelector(`#scale-input-min-${v.name}`);
+                        const maxInput = card.querySelector(`#scale-input-max-${v.name}`);
+
+                        autoCheck.addEventListener('change', (e) => {
+                            const isChecked = e.target.checked;
+                            v.autoScale = isChecked;
+                            minInput.disabled = isChecked;
+                            maxInput.disabled = isChecked;
+                            requestAnimationFrame(drawPlots);
+                        });
+
+                        minInput.addEventListener('input', (e) => {
+                            v.manualMin = parseFloat(e.target.value) || 0;
+                            requestAnimationFrame(drawPlots);
+                        });
+
+                        maxInput.addEventListener('input', (e) => {
+                            v.manualMax = parseFloat(e.target.value) || 0;
+                            requestAnimationFrame(drawPlots);
+                        });
                     }
-                });
+                } else {
+                    if (card) card.remove();
+                }
             });
         }
 
-        function triggerActivePlotRedraw() {
+        // --- Interactive Hover Events Binder (Shared Engine) ---
+        canvas.addEventListener('mousemove', (e) => {
+            const count = telemetryData.length;
+            if (count === 0) return;
+
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            const hoverPct = mouseX / canvas.width;
+
+            const maxPoints = getWindowSizePoints();
+            let startIndex = 0;
+            let endIndex = count;
+
             if (activeTab === 'review') {
-                requestAnimationFrame(drawPlots);
+                endIndex = liveFollowMode ? count : parseInt(timeSlider.value) + 1;
+                startIndex = maxPoints === "all" ? 0 : Math.max(0, endIndex - parseInt(maxPoints));
+                
+                const viewLength = endIndex - startIndex;
+                let sliceIdx = Math.round(hoverPct * (viewLength - 1));
+                sliceIdx = Math.max(0, Math.min(viewLength - 1, sliceIdx));
+                selectedIndex = startIndex + sliceIdx;
+
+                updateInspectingStatus(`[Inspecting Pt: ${selectedIndex}]`, "var(--accent-gold)");
+                updateInspector(telemetryData[selectedIndex]);
             } else if (activeTab === 'analysis') {
-                requestAnimationFrame(drawAnalysisPlots);
-            }
-        }
+                if (selectedEventIndex === -1 || detectedEvents.length === 0) return;
+                const ev = detectedEvents[selectedEventIndex];
+                const sliderVal = parseInt(timeSlider.value) || 0;
+                const playheadIdx = ev.startIndex + sliderVal;
 
-        // --- Variable Toggle Creator ---
-        function initToggles() {
-            const reviewContainer = document.getElementById('plot-selectors-container');
-            const analysisContainer = document.getElementById('plot-selectors-analysis-container');
-            
-            // Clear both containers
-            reviewContainer.innerHTML = "";
-            analysisContainer.innerHTML = "";
-            
-            TELEMETRY_LAYOUT.forEach((v) => {
-                // 1. Create Selector for Review Tab
-                const reviewTag = document.createElement('label');
-                reviewTag.className = "selector-tag";
-                reviewTag.style.color = v.color;
-                
-                const reviewCheck = document.createElement('input');
-                reviewCheck.type = "checkbox";
-                reviewCheck.checked = v.active;
-                
-                // 2. Create Selector for Analysis Tab
-                const analysisTag = document.createElement('label');
-                analysisTag.className = "selector-tag";
-                analysisTag.style.color = v.color;
-                
-                const analysisCheck = document.createElement('input');
-                analysisCheck.type = "checkbox";
-                analysisCheck.checked = v.active;
+                if (maxPoints === "all") {
+                    startIndex = ev.startIndex;
+                    endIndex = ev.endIndex + 1;
+                } else {
+                    const W = parseInt(maxPoints);
+                    const halfW = Math.floor(W / 2);
+                    startIndex = playheadIdx - halfW;
+                    endIndex = startIndex + W;
 
-                // Sync Handler: Mirror checks and trigger active canvas redraws
-                const syncChecks = (isChecked) => {
-                    v.active = isChecked;
-                    reviewCheck.checked = isChecked;
-                    analysisCheck.checked = isChecked;
-                    syncScaleCards();
-                    
-                    if (activeTab === 'review') {
-                        requestAnimationFrame(drawPlots);
-                    } else if (activeTab === 'analysis') {
-                        requestAnimationFrame(drawAnalysisPlots);
+                    if (startIndex < ev.startIndex) {
+                        startIndex = ev.startIndex;
+                        endIndex = Math.min(ev.endIndex + 1, startIndex + W);
                     }
-                };
+                    if (endIndex > ev.endIndex + 1) {
+                        endIndex = ev.endIndex + 1;
+                        startIndex = Math.max(ev.startIndex, endIndex - W);
+                    }
+                }
 
-                reviewCheck.addEventListener('change', (e) => syncChecks(e.target.checked));
-                analysisCheck.addEventListener('change', (e) => syncChecks(e.target.checked));
+                const visibleRange = (endIndex - 1) - startIndex;
+                let hoverIdx = Math.round(hoverPct * visibleRange) + startIndex;
+                hoverIdx = Math.max(startIndex, Math.min(endIndex - 1, hoverIdx));
+                selectedAnalysisIndex = hoverIdx;
 
-                reviewTag.appendChild(reviewCheck);
-                reviewTag.appendChild(document.createTextNode(v.label));
-                reviewContainer.appendChild(reviewTag);
+                updateInspectingStatus(`[Inspecting Start Pt: ${hoverIdx}]`, "var(--accent-gold)");
+                updateInspector(telemetryData[hoverIdx]);
+            }
 
-                analysisTag.appendChild(analysisCheck);
-                analysisTag.appendChild(document.createTextNode(v.label));
-                analysisContainer.appendChild(analysisTag);
+            requestAnimationFrame(drawPlots);
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            mouseX = null;
+            selectedIndex = null;
+            selectedAnalysisIndex = null;
+
+            updateInspectingStatus(
+                liveFollowMode ? "[Live]" : "[Paused]", 
+                liveFollowMode ? "var(--accent-green)" : "var(--accent-blue)"
+            );
+
+            if (activeTab === 'analysis') {
+                updateInspectingStatus("[Event View]", "var(--accent-blue)");
+            }
+
+            updateTimelineSliders();
+            requestAnimationFrame(drawPlots);
+        });
+
+        function initToggles() {
+            const container = document.getElementById('plot-selectors-container');
+            container.innerHTML = "";
+
+            TELEMETRY_LAYOUT.forEach((v) => {
+                const label = document.createElement('label');
+                label.className = "selector-tag";
+                label.style.color = v.color;
+
+                const check = document.createElement('input');
+                check.type = "checkbox";
+                check.checked = v.active;
+
+                check.addEventListener('change', (e) => {
+                    v.active = e.target.checked;
+                    syncScaleCards();
+                    requestAnimationFrame(drawPlots);
+                });
+
+                label.appendChild(check);
+                label.appendChild(document.createTextNode(v.label));
+                container.appendChild(label);
             });
-            
-            syncScaleCards(); // Build initial scale cards
+
+            syncScaleCards();
         }
+
         initToggles();
 
-        // --- HARNESS SERIAL CONNECTIONS ---
-        btnConnect.addEventListener('click', async () => {
-            if (port) { await disconnect(); } 
-            else { await connect(); }
-        });
-
-        async function connect() {
-            try {
-                port = await navigator.serial.requestPort();
-                const baud = parseInt(document.getElementById('baudrate').value);
-                await port.open({ baudRate: baud });
-
-                btnConnect.innerText = "Disconnect Port";
-                btnConnect.className = "disconnect";
-                termInput.disabled = false;
-                btnSend.disabled = false;
-                consoleDisplay.innerText = "--- Serial Connected. Streaming Idle. ---\n";
-                streamIndicator.innerText = "● ONLINE";
-                streamIndicator.style.color = "var(--accent-green)";
-
-                readLoop();
-            } catch (err) {
-                consoleDisplay.innerText += `\nConnection Error: ${err.message}\n`;
-                port = null;
-            }
-        }
-
-        async function disconnect() {
-            if (reader) { await reader.cancel(); }
-            if (port) { await port.close(); }
-            port = null;
-            btnConnect.innerText = "Connect Port";
-            btnConnect.className = "";
-            termInput.disabled = true;
-            btnSend.disabled = true;
-            streamIndicator.innerText = "● OFFLINE";
-            streamIndicator.style.color = "var(--text-muted)";
-        }
-
-        async function readLoop() {
-            while (port && port.readable) {
-                try {
-                    reader = port.readable.getReader();
-                    while (true) {
-                        const { value, done } = await reader.read();
-                        if (done) break;
-                        
-                        let newBuf = new Uint8Array(rxBuffer.length + value.length);
-                        newBuf.set(rxBuffer);
-                        newBuf.set(value, rxBuffer.length);
-                        rxBuffer = newBuf;
-
-                        processBuffer();
-                    }
-                } catch (err) {
-                    consoleDisplay.innerText += `\nRead Error: ${err.message}\n`;
-                    break;
-                } finally {
-                    if (reader) reader.releaseLock();
-                }
-            }
-        }
-
-        function processBuffer() {
-            let i = 0;
-            while (i < rxBuffer.length) {
-                if (rxBuffer[i] === START_MARKER) {
-                    if (i + PACKET_SIZE <= rxBuffer.length) {
-                        const packetCandidate = rxBuffer.slice(i, i + PACKET_SIZE);
-                        let calcChecksum = 0;
-                        for (let b = 0; b < PACKET_SIZE - 1; b++) {
-                            calcChecksum ^= packetCandidate[b];
-                        }
-                        if (calcChecksum === packetCandidate[PACKET_SIZE - 1]) {
-                            parseBinaryPacket(packetCandidate);
-                            i += PACKET_SIZE;
-                            continue;
-                        }
-                    } else {
-                        break;
-                    }
-                }
-                consoleDisplay.innerText += String.fromCharCode(rxBuffer[i]);
-                consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
-                i++;
-            }
-            rxBuffer = rxBuffer.slice(i);
-        }
-
-        function parseBinaryPacket(bytes) {
-            const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-            
-            // 1. Extract 32-bit Sequence ID and System State Enums
-            const packetId = view.getUint32(1, true); // Little Endian
-            const superState = view.getUint8(5);
-            const mcState = view.getUint8(6);
-            const ctrlMode = view.getUint8(7);
-
-            // Frame Drop Sequence Monitoring
-            totalReceivedPackets++;
-            if (lastPacketId !== null) {
-                const expectedId = (lastPacketId + 1) >>> 0; // Unsigned 32-bit addition
-                if (packetId !== expectedId && packetId > expectedId) {
-                    totalLostPackets += (packetId - expectedId);
-                }
-            }
-            lastPacketId = packetId;
-
-            // 2. Build Base Raw Data Sample (Mapping NBR_FLOATS Physical Floats)
-            let offset = 8;
-            const sample = {
-                timestamp: Date.now(),
-                packet_id: packetId,
-                super_state: superState,
-                mc_state: mcState,
-                ctrl_mode: ctrlMode
-            };
-
-            // Unpack physical UART floats from byte indices
-            TELEMETRY_LAYOUT.slice(0, NBR_FLOATS).forEach(v => {
-                sample[v.name] = view.getFloat32(offset, true);
-                offset += 4;
-            });
-
-            // 3. Compute Config-Driven Physics & Append Derived Parameters "On Arrival"
-            const phy = runPhysicsMath(sample);
-            Object.assign(sample, phy); // Merge derived properties into the master sample object
-
-            // 4. Commit fully populated data object to the historical database
-            telemetryData.push(sample);
-            
-            // 5. Update real-time Sidebar Statistics (with safety fallbacks)
-            const stateEl = document.getElementById('val-state');
-            const rpmEl = document.getElementById('val-rpm');
-            const vbusEl = document.getElementById('val-vbus');
-            const lossEl = document.getElementById('val-loss');
-
-            if (stateEl) stateEl.innerText = sample.super_state;
-            if (rpmEl) rpmEl.innerText = Math.round(sample.rpm);
-            if (vbusEl) vbusEl.innerText = sample.vbus_avg.toFixed(1) + "V";
-            
-            if (lossEl) {
-                const totalSched = totalReceivedPackets + totalLostPackets;
-                const lossRate = totalSched > 0 ? (totalLostPackets / totalSched) * 100 : 0.0;
-                lossEl.innerText = lossRate.toFixed(1) + "%";
-                if (lossRate > 1.0) {
-                    lossEl.style.color = "var(--accent-red)";
-                } else {
-                    lossEl.style.color = "var(--accent-green)";
-                }
-            }
-
-            // 6. Refresh Timeline Scrollbars and Schedule Canvas Plot Redraw
-            updateTimelineSliders();
-            requestAnimationFrame(drawPlots);
-        }
-
-        // --- SYSTEM LOGGER & CSV EXPORTERS ---
-        document.getElementById('btn-save').addEventListener('click', () => {
-            if (telemetryData.length === 0) {
-                alert("No telemetry samples captured yet.");
-                return;
-            }
-
-            let csv = "Timestamp,Packet_ID,Super_State,MC_State,Ctrl_Mode,";
-            csv += TELEMETRY_LAYOUT.map(v => v.name).join(",") + "\n";
-
-            telemetryData.forEach(d => {
-                let row = `${d.timestamp},${d.packet_id},${d.super_state},${d.mc_state},${d.ctrl_mode},`;
-                row += TELEMETRY_LAYOUT.map(v => d[v.name]).join(",");
-                csv += row + "\n";
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `WRSM_Diagnostic_Log_${new Date().toISOString().replace(/[:.]/g, '-')}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        });
-
-        // --- LOCAL DIAGNOSTIC FILE LOADER ---
-        document.getElementById('file-load').addEventListener('change', (e) => {
-            const files = e.target.files;
-            if (!files || files.length === 0) return;
-            const file = files;
-
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                const text = evt.target.result;
-                const lines = text.split("\n");
-                if (lines.length < 2) return;
-
-                // Grab headers and strip whitespaces
-                const headers = lines.trim().split(",");
-                const loadedSamples = [];
-
-                for (let i = 1; i < lines.length; i++) {
-                    const lineText = lines[i].trim();
-                    if (!lineText) continue;
-
-                    const cols = lineText.split(",");
-                    if (cols.length < headers.length) continue;
-
-                    const sample = {
-                        timestamp: parseInt(cols),
-                        packet_id: parseInt(cols[1]),
-                        super_state: parseInt(cols[2]),
-                        mc_state: parseInt(cols[3]),
-                        ctrl_mode: parseInt(cols[4])
-                    };
-
-                    TELEMETRY_LAYOUT.slice(0, NBR_FLOATS).forEach((v) => {
-                        const csvColIndex = headers.indexOf(v.name);
-                        if (csvColIndex !== -1) {
-                            sample[v.name] = parseFloat(cols[csvColIndex]);
-                        }
-                    });
-
-                    // Recalculate derived parameters to guarantee full dataset completeness
-                    const phy = runPhysicsMath(sample);
-                    Object.assign(sample, phy);
-
-                    loadedSamples.push(sample);
-                }
-
-                telemetryData = loadedSamples;
-                totalReceivedPackets = loadedSamples.length;
-                totalLostPackets = 0;
-                lastPacketId = null;
-                
-                liveFollowMode = false;
-                liveToggle.checked = false;
-                
-                consoleDisplay.innerText = `--- Loaded ${loadedSamples.length} diagnostic points from CSV ---\n`;
-                updateTimelineSliders();
-                requestAnimationFrame(drawPlots);
-            };
-            reader.readAsText(file);
-        });
-
-        // --- CRANKING & STALL RUN FLIGHT SIMULATOR ---
-        document.getElementById('btn-simulate').addEventListener('click', () => {
-            telemetryData = [];
-            totalReceivedPackets = 0;
-            totalLostPackets = 0;
-            lastPacketId = null;
-
-            const sampleCount = 1500; // 30 seconds @ 50Hz
-            const targetERPM = CONFIG.target_erpm;
-            
-            for (let i = 0; i < sampleCount; i++) {
-                const t = i / 50.0; // Simulated time in seconds
-                let super_state = 0; // standby
-                let rpm = 0.0;
-                let speed_tgt = 0.0;
-                let speed_iterm = 0.0;
-                let ibus = 0.0;
-                let accel = 0.0;
-                let vbus = 14.2;
-                let iq = 0.0;
-                let id = 0.0;
-                let if_curr = 0.0;
-                let duty = 0.0;
-                let ctrl_mode = 10; // MC_CONTROL_MODE_NONE
-
-                if (t < 2.0) {
-                    // Pre-excitation
-                    super_state = 3; // PRE_EXCITE
-                    if_curr = t * 1.4; // ramp up field current
-                    vbus = 14.2 - 0.2 * t;
-                    ibus = 0.4; // tiny aux bridge draw
-                } else if (t < 7.0) {
-                    // Engine Cranking Ramping
-                    super_state = 4; // CRANKING
-                    ctrl_mode = 1; // CONTROL_MODE_SPEED
-                    const startT = t - 2.0;
-                    if_curr = 2.8;
-                    
-                    // Speed PID Target and actual lag calculation
-                    speed_tgt = Math.min(targetERPM, startT * (targetERPM / 4.0));
-                    rpm = Math.max(0, speed_tgt - (180.0 + Math.sin(t * 30.0) * 120.0)); // Cylinder compression sags
-                    accel = (targetERPM / 4.0) + Math.sin(t * 30.0) * 150;
-                    
-                    iq = 110 - startT * 10;
-                    duty = Math.min(0.85, 0.15 + startT * 0.14);
-                    ibus = (iq * duty) + 1.5; // active stator draw + rotor excitation
-                    speed_iterm = 10.5 + startT * 3.5;
-                    vbus = 11.2 + Math.random() * 0.4; // voltage sag
-                } else if (t < 20.0) {
-                    // Alternator charging / Running State
-                    super_state = 5; // ALTERNATOR
-                    ctrl_mode = 2; // CONTROL_MODE_CURRENT
-                    if_curr = 1.2 + Math.sin(t * 0.5) * 0.4;
-                    rpm = 3000 + Math.sin(t * 2.0) * 200; // engine idle
-                    accel = Math.sin(t * 2.0) * 40;
-                    iq = -55.0 - Math.sin(t * 1.5) * 10; // Negative stator generating current
-                    duty = 0.45;
-                    ibus = (iq * duty); // Negative battery current charging!
-                    vbus = 13.8 + Math.sin(t * 0.5) * 0.2;
-                } else if (t < 25.0) {
-                    // Drag down near a Stall catch transient
-                    super_state = 6; // STALL_CATCH
-                    ctrl_mode = 1; // speed control catch mode
-                    const stallT = t - 20.0;
-                    if_curr = 2.8; 
-                    
-                    speed_tgt = CONFIG.stall_erpm;
-                    rpm = Math.max(800, 3000 - stallT * 600); // speed drops!
-                    accel = -600 + Math.sin(t * 50.0) * 350; 
-                    
-                    iq = Math.min(150.0, stallT * 42); // Maximum current dump to catch block!
-                    duty = 0.75;
-                    ibus = (iq * duty) + 1.5;
-                    speed_iterm = 22.0; // Saturated I-Term pushing limits
-                    vbus = 11.8 - stallT * 0.3; // battery sag under heavy catch
-                } else {
-                    // Post-stall / Coast down to OFF
-                    super_state = 2; // STOPPING
-                    ctrl_mode = 10;
-                    const stopT = t - 25.0;
-                    rpm = Math.max(0, 800 - stopT * 160);
-                    accel = -160;
-                    if_curr = Math.max(0, 2.8 - stopT * 1.5); // decay field
-                    vbus = 12.8;
-                }
-
-                // Append minor high-frequency noise elements to float variables
-                const noise = () => (Math.random() - 0.5) * 0.05;
-
-                const sample = {
-                    timestamp: Date.now() - (sampleCount - i) * 20,
-                    packet_id: i,
-                    super_state,
-                    mc_state: rpm > 100 ? 2 : 0, 
-                    ctrl_mode,
-                    rpm: rpm + noise() * 10,
-                    accel_avg: accel,
-                    accel_mad: Math.abs(accel * 0.15) + Math.random() * 20, 
-                    iq_avg: iq + noise() * 5,
-                    iq_mad: Math.abs(iq * 0.08) + Math.random() * 2,
-                    iq_target: iq,
-                    id_avg: id,
-                    id_min: id - 2,
-                    id_max: id + 2,
-                    if_avg: if_curr,
-                    if_mad: Math.abs(if_curr * 0.05) + Math.random() * 0.1,
-                    field_pwm_avg: if_curr / 3.0,
-                    field_pwm_mad: Math.random() * 0.02,
-                    vbus_avg: vbus,
-                    vbus_min: vbus - 0.2,
-                    vbus_max: vbus + 0.2,
-                    duty_avg: duty,
-                    duty_max: duty + 0.05,
-                    if_min: if_curr - 0.1,
-                    stator_fw_id: 0.0,
-                    
-                    // Aligned Tuning fields
-                    speed_target: speed_tgt,
-                    speed_i_term: speed_iterm,
-                    i_bus: ibus + noise() * 2
-                };
-
-                // Append derived physics to the simulated sample on arrival
-                const phy = runPhysicsMath(sample);
-                Object.assign(sample, phy);
-
-                telemetryData.push(sample);
-            }
-
-            totalReceivedPackets = sampleCount;
-            liveFollowMode = false;
-            liveToggle.checked = false;
-            
-            consoleDisplay.innerText = "--- Generated 30-Second Cranking & Stall Run Simulation Data ---\n";
-            updateTimelineSliders();
-            requestAnimationFrame(drawPlots);
-        });
-
-        // --- TRANSMITTER CMDS ---
-        async function sendCommand(commandText) {
-            if (!port || !port.writable) return;
-            const encoder = new TextEncoder();
-            const data = encoder.encode(commandText + "\n");
-            const writer = port.writable.getWriter();
-            await writer.write(data);
-            writer.releaseLock();
-        }
-
-        btnSend.addEventListener('click', () => {
-            const cmd = termInput.value;
-            if (cmd.trim()) {
-                sendCommand(cmd);
-                termInput.value = "";
-            }
-        });
-
-        termInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') btnSend.click();
-        });
-
-        // --- START ANALYSIS CODE ---
-        let detectedEvents = [];       // Isolated starts database
-        let selectedEventIndex = -1;   // Pointer to active analyzed event
-
+        // --- Cranking Post-Processor Core Slicer ---
         function performStartAnalysis() {
             if (telemetryData.length === 0) {
                 alert("Please load a log file or click 'Simulate Run' first!");
@@ -1921,20 +1480,17 @@
             let inCrankingBlock = false;
             let currentStartIdx = -1;
 
-            // Step A: Scan forward to isolate contiguous blocks of Cranking State (State 4)
+            // Isolate contiguous blocks of Crank State (State 4)
             for (let i = 0; i < count; i++) {
                 const state = telemetryData[i].super_state;
 
                 if (state === 4 && !inCrankingBlock) {
-                    // Cranking begins!
                     inCrankingBlock = true;
                     currentStartIdx = i;
                 } else if (state !== 4 && inCrankingBlock) {
-                    // Cranking exits. Let's package this starting run!
                     inCrankingBlock = false;
                     const crankingEndIdx = i - 1;
 
-                    // Trace backward to find Pre-Excitation state (State 3) or gather pre-start baseline
                     let preStartIdx = currentStartIdx;
                     while (preStartIdx > 0 && (telemetryData[preStartIdx].super_state === 3 || preStartIdx > currentStartIdx - 100)) {
                         preStartIdx--;
@@ -1942,15 +1498,14 @@
 
                     detectedEvents.push({
                         id: detectedEvents.length + 1,
-                        startIndex: preStartIdx,                // Start of our isolated timeline
-                        crankingStartIndex: currentStartIdx,     // Transition to active engine cranking
-                        endIndex: Math.min(count - 1, crankingEndIdx + 50), // Include 1s of post-crank data
+                        startIndex: preStartIdx,
+                        crankingStartIndex: currentStartIdx,
+                        endIndex: Math.min(count - 1, crankingEndIdx + 50),
                         timestamp: new Date(telemetryData[currentStartIdx].timestamp).toLocaleTimeString()
                     });
                 }
             }
 
-            // Handle edge case where log ends while still cranking
             if (inCrankingBlock) {
                 detectedEvents.push({
                     id: detectedEvents.length + 1,
@@ -1961,9 +1516,8 @@
                 });
             }
 
-            // Step B: Update Dropdown Selector
             const selector = document.getElementById('select-analysis-event');
-            selector.innerHTML = ""; // Clear placeholders
+            selector.innerHTML = "";
 
             if (detectedEvents.length === 0) {
                 selector.innerHTML = `<option value="">-- No starts found in this log --</option>`;
@@ -1980,193 +1534,28 @@
                 selector.appendChild(opt);
             });
 
-            // Auto-select the first starting event
             selectedEventIndex = 0;
             selector.value = 0;
             loadAnalysisEvent(0);
         }
 
-        // Isolates the view limits and timeline sliders to the current event boundary
         function loadAnalysisEvent(index) {
             selectedEventIndex = index;
             const ev = detectedEvents[index];
             if (!ev) return;
 
-            const slider = document.getElementById('time-slider-analysis');
-            const totalPoints = ev.endIndex - ev.startIndex;
-
-            slider.min = 0;
-            slider.max = totalPoints;
-            slider.value = 0; // default scrub line at start of event
-            slider.disabled = false;
-
-            document.getElementById('slider-min-analysis').innerText = `Pt:${ev.startIndex}`;
-            document.getElementById('slider-max-analysis').innerText = `Pt:${ev.endIndex}`;
-            document.getElementById('active-packet-val-analysis').innerText = telemetryData[ev.startIndex].packet_id;
-
-            // Generate report and redraw canvas
+            timeSlider.value = 0;
+            updateTimelineSliders();
             calculateCrankingStats(ev);
-            requestAnimationFrame(drawAnalysisPlots);
+            requestAnimationFrame(drawPlots);
         }
 
-        // Renders the isolated cranking data on the secondary canvas
-        function drawAnalysisPlots() {
-            const canvas = document.getElementById('analysisCanvas');
-            if (!canvas) return;
-
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
-            const w = canvas.width;
-            const h = canvas.height;
-            const ctx = canvas.getContext('2d');
-
-            ctx.clearRect(0, 0, w, h);
-
-            // Draw Background Grid
-            ctx.strokeStyle = "#1e293b";
-            ctx.lineWidth = 1;
-            for (let gridX = 0; gridX < w; gridX += w / 10) {
-                ctx.beginPath(); ctx.moveTo(gridX, 0); ctx.lineTo(gridX, h); ctx.stroke();
-            }
-            for (let gridY = 0; gridY < h; gridY += h / 6) {
-                ctx.beginPath(); ctx.moveTo(0, gridY); ctx.lineTo(w, gridY); ctx.stroke();
-            }
-
-            if (selectedEventIndex === -1 || detectedEvents.length === 0) {
-                ctx.fillStyle = "var(--text-muted)";
-                ctx.font = "14px sans-serif";
-                ctx.textAlign = "center";
-                ctx.fillText("Ready to analyze starts. Click 'Perform Start Analysis' above.", w / 2, h / 2);
-                return;
-            }
-
-            const ev = detectedEvents[selectedEventIndex];
-            const slider = document.getElementById('time-slider-analysis');
-            const sliderVal = parseInt(slider.value) || 0;
-            const cursorIdx = ev.startIndex + sliderVal; // Live cursor index in telemetry array
-
-            // Extract and validate dynamic window width constraints
-            const maxPointsVal = document.getElementById('window-size-analysis').value;
-            let winStart, winEnd;
-
-            if (maxPointsVal === "all") {
-                winStart = ev.startIndex;
-                winEnd = ev.endIndex;
-            } else {
-                const W = parseInt(maxPointsVal);
-                const halfW = Math.floor(W / 2);
-                winStart = cursorIdx - halfW;
-                winEnd = winStart + W - 1;
-
-                // Clamp window bounds to keep them strictly inside the isolated start boundaries
-                if (winStart < ev.startIndex) {
-                    winStart = ev.startIndex;
-                    winEnd = Math.min(ev.endIndex, winStart + W - 1);
-                }
-                if (winEnd > ev.endIndex) {
-                    winEnd = ev.endIndex;
-                    winStart = Math.max(ev.startIndex, winEnd - W + 1);
-                }
-            }
-
-            // Update Timeline slider labels to reflect the current absolute visible window
-            document.getElementById('slider-min-analysis').innerText = `Pt:${winStart}`;
-            document.getElementById('slider-max-analysis').innerText = `Pt:${winEnd}`;
-
-            const activeSlice = telemetryData.slice(winStart, winEnd + 1);
-            if (activeSlice.length <= 1) return;
-
-            const visibleRange = winEnd - winStart;
-
-            // Draw Phase Marker Dividers (Only if they are inside the active visible zoom window!)
-            if (ev.crankingStartIndex > winStart && ev.crankingStartIndex < winEnd) {
-                const crankMarkerX = ((ev.crankingStartIndex - winStart) / visibleRange) * w;
-                ctx.strokeStyle = "var(--accent-gold)";
-                ctx.setLineDash([]);
-                ctx.lineWidth = 1.5;
-                ctx.beginPath(); ctx.moveTo(crankMarkerX, 0); ctx.lineTo(crankMarkerX, h); ctx.stroke();
-                
-                ctx.fillStyle = "var(--accent-gold)";
-                ctx.font = "bold 9px sans-serif";
-                ctx.fillText("CRANK START RAMP", crankMarkerX + 6, 25);
-            }
-
-            // Draw active variable lines
-            TELEMETRY_LAYOUT.forEach(v => {
-                if (!v.active) return;
-
-                let minVal = Infinity;
-                let maxVal = -Infinity;
-
-                // Scale variables to the visible window to maximize visual resolution!
-                activeSlice.forEach(d => {
-                    const val = d[v.name];
-                    if (val < minVal) minVal = val;
-                    if (val > maxVal) maxVal = val;
-                });
-
-                // Compute scaling limits
-                let plotMin, plotMax;
-                if (v.autoScale !== false) {
-                    const range = maxVal - minVal;
-                    plotMin = minVal - range * 0.05;
-                    plotMax = maxVal + range * 0.05;
-                    if (Math.abs(range) < 0.001) {
-                        plotMin -= 1;
-                        plotMax += 1;
-                    }
-                } else {
-                    plotMin = v.manualMin;
-                    plotMax = v.manualMax;
-                }
-
-                // Update scale card labels on the side
-                const sliceMinEl = document.getElementById(`analysis-scale-slice-min-${v.name}`);
-                const sliceMaxEl = document.getElementById(`analysis-scale-slice-max-${v.name}`);
-                if (sliceMinEl && sliceMaxEl) {
-                    sliceMinEl.innerText = minVal !== Infinity ? minVal.toFixed(1) : "-";
-                    sliceMaxEl.innerText = maxVal !== Infinity ? maxVal.toFixed(1) : "-";
-                }
-
-                // Plot Line Path
-                ctx.beginPath();
-                ctx.strokeStyle = v.color;
-                ctx.lineWidth = 2;
-
-                activeSlice.forEach((d, idx) => {
-                    const x = (idx / (activeSlice.length - 1)) * w;
-                    const y = h - ((d[v.name] - plotMin) / (plotMax - plotMin)) * h;
-                    if (idx === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                });
-                ctx.stroke();
-            });
-
-            // Draw vertical scrubbing line relative to the current window starting point
-            const cursorX = ((cursorIdx - winStart) / visibleRange) * w;
-
-            ctx.strokeStyle = "var(--accent-blue)";
-            ctx.lineWidth = 1;
-            ctx.beginPath(); ctx.moveTo(cursorX, 0); ctx.lineTo(cursorX, h); ctx.stroke();
-
-            // Update mirrored inspector fields
-            const selectedSample = telemetryData[cursorIdx];
-            if (selectedSample) {
-                updateInspector(selectedSample);
-                document.getElementById('active-packet-val-analysis').innerText = selectedSample.packet_id;
-            }
-        }
-
-        // Computes and prints the start analysis phase report
         function calculateCrankingStats(ev) {
             const entireLog = telemetryData;
-            
-            // 1. Isolate Phase Bins
             const preCrankSlice = entireLog.slice(ev.startIndex, ev.crankingStartIndex);
             const crankingSlice = entireLog.slice(ev.crankingStartIndex, ev.endIndex);
 
-            // Compute Battery Rest Voltage (V_rest)
-            let v_rest = 14.2; // default safe fallback
+            let v_rest = 14.2;
             if (preCrankSlice.length > 0) {
                 const vbus_sum = preCrankSlice.reduce((sum, d) => sum + d.vbus_avg, 0);
                 v_rest = vbus_sum / preCrankSlice.length;
@@ -2174,9 +1563,8 @@
                 v_rest = entireLog[ev.startIndex].vbus_avg;
             }
 
-            // 2. Perform Stats Aggregation over Crank Window (State 4)
             let samples = crankingSlice.length;
-            let duration_ms = samples * 20; // 50 Hz = 20ms steps
+            let duration_ms = samples * 20;
 
             let max_error = 0;
             let error_sum = 0;
@@ -2198,23 +1586,19 @@
             let r_sys_count = 0;
 
             crankingSlice.forEach(d => {
-                // Tracking Speed Errors
                 const error = d.speed_target - d.rpm;
                 const abs_error = Math.abs(error);
                 if (abs_error > max_error) max_error = abs_error;
                 error_sum += abs_error;
 
-                // Stator Active Currents
                 const abs_iq = Math.abs(d.iq_avg);
                 if (abs_iq > peak_iq) peak_iq = abs_iq;
                 iq_sum += abs_iq;
 
-                // Integrator wind-up & duty constraints
                 if (Math.abs(d.speed_i_term) > peak_iterm) peak_iterm = Math.abs(d.speed_i_term);
                 if (d.vbus_min < min_vbus) min_vbus = d.vbus_min;
                 if (d.duty_max > max_duty) max_duty = d.duty_max;
 
-                // Electromechanical variables (Derived "On-Arrival")
                 if (Math.abs(d.t_total) > peak_torque) peak_torque = Math.abs(d.t_total);
                 torque_sum += d.t_total;
 
@@ -2225,7 +1609,7 @@
                 mech_power_sum += Math.max(0, d.power_mech);
                 elec_power_sum += Math.max(0, d.power_elec_total);
 
-                // Cabling Resistance calculation (only evaluate during high-current crank sags > 15A)
+                // Dynamic Cabling Resistance math
                 if (d.i_bus > 15.0 && d.vbus_avg < v_rest) {
                     const r_sys = (v_rest - d.vbus_avg) / d.i_bus;
                     r_sys_sum += r_sys;
@@ -2233,7 +1617,6 @@
                 }
             });
 
-            // Prevent divide by zeros on empty slices
             const avg_error = samples > 0 ? (error_sum / samples) : 0;
             const avg_iq = samples > 0 ? (iq_sum / samples) : 0;
             const avg_torque = samples > 0 ? (torque_sum / samples) : 0;
@@ -2242,7 +1625,6 @@
             const system_efficiency = avg_power_elec > 0 ? (avg_power_mech / avg_power_elec) * 100.0 : 0.0;
             const avg_r_sys = r_sys_count > 0 ? (r_sys_sum / r_sys_count) : 0;
 
-            // Step 3: Compile Warnings/Notes based on physical thresholds
             let alerts = [];
             if (avg_r_sys > 0.025) {
                 alerts.push(`⚠️ CABLING BOTTLENECK: High cabling resistance detected (${(avg_r_sys * 1000).toFixed(1)} mΩ). Inspect physical starter cables and battery terminal contactors!`);
@@ -2260,46 +1642,43 @@
                 alerts.push(`✅ CRANKING SUCCESSFUL: All physical limits, speeds, and cabling resistances are within nominal safe parameters.`);
             }
 
-            // Step 4: Write report text
             const display = document.getElementById('analysis-report-display');
             display.innerHTML = `
-============================================================
-           CRANKING START REPORT (EVENT #${ev.id})
-============================================================
-TIME CAPTURED:      ${ev.timestamp}
-CRANKING DURATION:  ${(duration_ms / 1000).toFixed(2)} seconds (${samples} samples)
-BATTERY OPEN-VOLT:  ${v_rest.toFixed(2)} V
+    ============================================================
+            CRANKING START REPORT (EVENT #${ev.id})
+    ============================================================
+    TIME CAPTURED:      ${ev.timestamp}
+    CRANKING DURATION:  ${(duration_ms / 1000).toFixed(2)} seconds (${samples} samples)
+    BATTERY OPEN-VOLT:  ${v_rest.toFixed(2)} V
 
---- POWER DISTRIBUTION & LOSS ANALYSIS ---
-BATTERY MIN VOLT:   ${min_vbus.toFixed(2)} V (Sag: ${(v_rest - min_vbus).toFixed(2)}V)
-AVG CABLING RES:    ${(avg_r_sys * 1000).toFixed(1)} mΩ (Calculated over ${r_sys_count} high-amp frames)
-PEAK MECHANICAL:    ${peak_power.toFixed(0)} W (${(peak_power / 745.7).toFixed(2)} hp developed)
-AVG ELECT. INPUT:   ${avg_power_elec.toFixed(0)} W
-AVG MECH. OUTPUT:   ${avg_power_mech.toFixed(0)} W
-SYSTEM EFFICIENCY:  ${system_efficiency.toFixed(1)} %
+    --- POWER DISTRIBUTION & LOSS ANALYSIS ---
+    BATTERY MIN VOLT:   ${min_vbus.toFixed(2)} V (Sag: ${(v_rest - min_vbus).toFixed(2)}V)
+    AVG CABLING RES:    ${(avg_r_sys * 1000).toFixed(1)} mΩ (Calculated over ${r_sys_count} high-amp frames)
+    PEAK MECHANICAL:    ${peak_power.toFixed(0)} W (${(peak_power / 745.7).toFixed(2)} hp developed)
+    AVG ELECT. INPUT:   ${avg_power_elec.toFixed(0)} W
+    AVG MECH. OUTPUT:   ${avg_power_mech.toFixed(0)} W
+    SYSTEM EFFICIENCY:  ${system_efficiency.toFixed(1)} %
 
---- ELECTROMECHANICAL FORCE SPLITS ---
-PEAK JOINT TORQUE:  ${peak_torque.toFixed(1)} Nm
-AVG JOINT TORQUE:   ${avg_torque.toFixed(1)} Nm
-PEAK MAG FORCE:     ${peak_t_mag.toFixed(1)} Nm (Rotor magnet interaction)
-PEAK REL FORCE:     ${peak_t_rel.toFixed(1)} Nm (Claw-pole saliency interaction)
+    --- ELECTROMECHANICAL FORCE SPLITS ---
+    PEAK JOINT TORQUE:  ${peak_torque.toFixed(1)} Nm
+    AVG JOINT TORQUE:   ${avg_torque.toFixed(1)} Nm
+    PEAK MAG FORCE:     ${peak_t_mag.toFixed(1)} Nm (Rotor magnet interaction)
+    PEAK REL FORCE:     ${peak_t_rel.toFixed(1)} Nm (Claw-pole saliency interaction)
 
---- CLOSED-LOOP SPEED TUNING ANALYSIS ---
-TARGET CRANK SPEED: ${CONFIG.target_erpm} ERPM
-PEAK STATOR IQ:     ${peak_iq.toFixed(1)} A (Avg: ${avg_iq.toFixed(1)}A)
-MAX SPEED ERROR:    ${max_error.toFixed(0)} ERPM (Avg Lag: ${avg_error.toFixed(0)} ERPM)
-PEAK PID I-TERM:    ${peak_iterm.toFixed(1)} A
+    --- CLOSED-LOOP SPEED TUNING ANALYSIS ---
+    TARGET CRANK SPEED: ${CONFIG.target_erpm} ERPM
+    PEAK STATOR IQ:     ${peak_iq.toFixed(1)} A (Avg: ${avg_iq.toFixed(1)}A)
+    MAX SPEED ERROR:    ${max_error.toFixed(0)} ERPM (Avg Lag: ${avg_error.toFixed(0)} ERPM)
+    PEAK PID I-TERM:    ${peak_iterm.toFixed(1)} A
 
---- SYSTEM ALERT MESSAGES ---
-${alerts.join("\n")}
-============================================================
+    --- SYSTEM ALERT MESSAGES ---
+    ${alerts.join("\n")}
+    ============================================================
             `;
         }
 
-        // Connect the "Perform Start Analysis" scanning trigger
         document.getElementById('btn-perform-analysis').addEventListener('click', performStartAnalysis);
 
-        // Connect the start dropdown selector to update views
         document.getElementById('select-analysis-event').addEventListener('change', (e) => {
             const eventIndex = parseInt(e.target.value);
             if (!isNaN(eventIndex)) {
@@ -2307,98 +1686,370 @@ ${alerts.join("\n")}
             }
         });
 
-        // Track scrubber movements on the isolated Cranking Timeline
-        const analysisSlider = document.getElementById('time-slider-analysis');
-        
-        analysisSlider.addEventListener('input', () => {
-            if (selectedEventIndex === -1 || detectedEvents.length === 0) return;
-            
-            const ev = detectedEvents[selectedEventIndex];
-            const activeSlice = telemetryData.slice(ev.startIndex, ev.endIndex + 1);
-            const sliderVal = parseInt(analysisSlider.value) || 0;
-            
-            const currentSample = activeSlice[sliderVal];
-            if (currentSample) {
-                // Instantly update the sidebar inspector values
-                updateInspector(currentSample);
-                document.getElementById('active-packet-val-analysis').innerText = currentSample.packet_id;
-            }
-            
-            requestAnimationFrame(drawAnalysisPlots); // Slide the vertical blue line in real-time
+        // --- Harness Serial Connections & Packet Parsing ---
+        btnConnect.addEventListener('click', async () => {
+            if (port) { await disconnect(); }
+            else { await connect(); }
         });
 
-        const analysisCanvas = document.getElementById('analysisCanvas');
-        
-        analysisCanvas.addEventListener('mousemove', (e) => {
-            if (selectedEventIndex === -1 || detectedEvents.length === 0) return;
-            const ev = detectedEvents[selectedEventIndex];
+        async function connect() {
+            try {
+                port = await navigator.serial.requestPort();
+                const baud = parseInt(document.getElementById('baudrate').value);
+                await port.open({ baudRate: baud });
 
-            const rect = analysisCanvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const hoverPct = x / analysisCanvas.width;
+                btnConnect.innerText = "Disconnect Port";
+                btnConnect.className = "disconnect";
+                streamIndicator.innerText = "● LIVE";
+                streamIndicator.style.color = "var(--accent-green)";
+                
+                termInput.disabled = false;
+                btnSend.disabled = false;
 
-            // Recalculate active visible bounds exactly as in drawAnalysisPlots
-            const slider = document.getElementById('time-slider-analysis');
-            const sliderVal = parseInt(slider.value) || 0;
-            const cursorIdx = ev.startIndex + sliderVal;
+                readLoop();
+            } catch (err) {
+                consoleDisplay.innerText += `\nConnection Failed: ${err.message}\n`;
+            }
+        }
 
-            const maxPointsVal = document.getElementById('window-size-analysis').value;
-            let winStart, winEnd;
+        async function disconnect() {
+            if (reader) {
+                await reader.cancel();
+                reader = null;
+            }
+            if (port) {
+                await port.close();
+                port = null;
+            }
+            btnConnect.innerText = "Connect Port";
+            btnConnect.className = "";
+            streamIndicator.innerText = "● OFFLINE";
+            streamIndicator.style.color = "var(--text-muted)";
+            
+            termInput.disabled = true;
+            btnSend.disabled = true;
+        }
 
-            if (maxPointsVal === "all") {
-                winStart = ev.startIndex;
-                winEnd = ev.endIndex;
-            } else {
-                const W = parseInt(maxPointsVal);
-                const halfW = Math.floor(W / 2);
-                winStart = cursorIdx - halfW;
-                winEnd = winStart + W - 1;
+        async function readLoop() {
+            while (port && port.readable) {
+                try {
+                    reader = port.readable.getReader();
+                    while (true) {
+                        const { value, done } = await reader.read();
+                        if (done) break;
 
-                if (winStart < ev.startIndex) {
-                    winStart = ev.startIndex;
-                    winEnd = Math.min(ev.endIndex, winStart + W - 1);
+                        const newBuffer = new Uint8Array(rxBuffer.length + value.length);
+                        newBuffer.set(rxBuffer, 0);
+                        newBuffer.set(value, rxBuffer.length);
+                        rxBuffer = newBuffer;
+
+                        processBuffer();
+                    }
+                } catch (err) {
+                    consoleDisplay.innerText += `\nRead Error: ${err.message}\n`;
+                    break;
+                } finally {
+                    if (reader) reader.releaseLock();
                 }
-                if (winEnd > ev.endIndex) {
-                    winEnd = ev.endIndex;
-                    winStart = Math.max(ev.startIndex, winEnd - W + 1);
+            }
+        }
+
+        function processBuffer() {
+            let i = 0;
+            while (i < rxBuffer.length) {
+                if (rxBuffer[i] === START_MARKER) {
+                    if (i + PACKET_SIZE <= rxBuffer.length) {
+                        const packetBytes = rxBuffer.slice(i, i + PACKET_SIZE);
+                        
+                        let checksum = 0;
+                        for (let c = 0; c < PACKET_SIZE - 1; c++) {
+                            checksum ^= packetBytes[c];
+                        }
+
+                        if (checksum === packetBytes[PACKET_SIZE - 1]) {
+                            parseBinaryPacket(packetBytes);
+                            i += PACKET_SIZE;
+                            continue;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                consoleDisplay.innerText += String.fromCharCode(rxBuffer[i]);
+                consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
+                i++;
+            }
+            rxBuffer = rxBuffer.slice(i);
+        }
+
+        function parseBinaryPacket(bytes) {
+            const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+            const packetId = view.getUint32(1, true);
+            const superState = view.getUint8(5);
+            const mcState = view.getUint8(6);
+            const ctrlMode = view.getUint8(7);
+
+            totalReceivedPackets++;
+            if (lastPacketId !== null) {
+                const expectedId = (lastPacketId + 1) >>> 0;
+                if (packetId !== expectedId && packetId > expectedId) {
+                    totalLostPackets += (packetId - expectedId);
                 }
             }
+            lastPacketId = packetId;
 
-            const visibleRange = winEnd - winStart;
-            if (visibleRange <= 0) return;
+            let offset = 8;
+            const sample = {
+                timestamp: Date.now(),
+                packet_id: packetId,
+                super_state: superState,
+                mc_state: mcState,
+                ctrl_mode: ctrlMode
+            };
 
-            // Map hover percentage to the points inside our active visible zoom slice
-            let hoverIdx = Math.round(hoverPct * visibleRange) + winStart;
-            hoverIdx = Math.max(winStart, Math.min(winEnd, hoverIdx));
+            TELEMETRY_LAYOUT.slice(0, 23).forEach(v => {
+                sample[v.name] = view.getFloat32(offset, true);
+                offset += 4;
+            });
+
+            const phy = runPhysicsMath(sample);
+            Object.assign(sample, phy);
+
+            telemetryData.push(sample);
+
+            const stateEl = document.getElementById('val-state');
+            const rpmEl = document.getElementById('val-rpm');
+            const vbusEl = document.getElementById('val-vbus');
+            const lossEl = document.getElementById('val-loss');
+
+            if (stateEl) stateEl.innerText = sample.super_state;
+            if (rpmEl) rpmEl.innerText = Math.round(sample.rpm);
+            if (vbusEl) vbusEl.innerText = sample.vbus_avg.toFixed(1) + "V";
             
-            const targetSliderVal = hoverIdx - ev.startIndex;
-            slider.value = targetSliderVal;
-
-            const currentSample = telemetryData[hoverIdx];
-            if (currentSample) {
-                updateInspector(currentSample);
-                document.getElementById('active-packet-val-analysis').innerText = currentSample.packet_id;
-                updateInspectingStatus(`[Inspecting Start Pt: ${hoverIdx}]`, "var(--accent-gold)");
+            if (lossEl) {
+                const totalSched = totalReceivedPackets + totalLostPackets;
+                const lossRate = totalSched > 0 ? (totalLostPackets / totalSched) * 100 : 0.0;
+                lossEl.innerText = lossRate.toFixed(1) + "%";
+                lossEl.style.color = (lossRate > 1.0) ? "var(--accent-red)" : "var(--accent-green)";
             }
 
-            requestAnimationFrame(drawAnalysisPlots);
+            updateTimelineSliders();
+            requestAnimationFrame(drawPlots);
+        }
+
+        // --- File Exporter ---
+        document.getElementById('btn-save').addEventListener('click', () => {
+            if (telemetryData.length === 0) {
+                alert("No telemetry samples captured yet.");
+                return;
+            }
+
+            let csvContent = "timestamp,packet_id,super_state,mc_state,ctrl_mode," + 
+                            TELEMETRY_LAYOUT.slice(0, 23).map(v => v.name).join(",") + "\n";
+
+            telemetryData.forEach(d => {
+                let row = [
+                    d.timestamp,
+                    d.packet_id,
+                    d.super_state,
+                    d.mc_state,
+                    d.ctrl_mode
+                ];
+                TELEMETRY_LAYOUT.slice(0, 23).forEach(v => {
+                    row.push(d[v.name]);
+                });
+                csvContent += row.join(",") + "\n";
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `WRSM_Diagnostic_Log_${new Date().toISOString().replace(/[:.]/g, '-')}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         });
 
-        analysisCanvas.addEventListener('mouseleave', () => {
-            updateInspectingStatus("[Event View]", "var(--accent-blue)");
-            requestAnimationFrame(drawAnalysisPlots);
+        // --- CSV Importer ---
+        document.getElementById('file-load').addEventListener('change', (e) => {
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+            const file = files[0];
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const text = evt.target.result;
+                const lines = text.split("\n");
+                if (lines.length < 2) return;
+
+                const headers = lines[0].trim().split(",");
+                const loadedSamples = [];
+
+                for (let i = 1; i < lines.length; i++) {
+                    const lineText = lines[i].trim();
+                    if (!lineText) continue;
+
+                    const cols = lineText.split(",");
+                    if (cols.length < headers.length) continue;
+
+                    const sample = {
+                        timestamp: parseInt(cols[0]),
+                        packet_id: parseInt(cols[1]),
+                        super_state: parseInt(cols[2]),
+                        mc_state: parseInt(cols[3]),
+                        ctrl_mode: parseInt(cols[4])
+                    };
+
+                    TELEMETRY_LAYOUT.slice(0, 23).forEach((v) => {
+                        const csvColIndex = headers.indexOf(v.name);
+                        if (csvColIndex !== -1) {
+                            sample[v.name] = parseFloat(cols[csvColIndex]);
+                        }
+                    });
+
+                    const phy = runPhysicsMath(sample);
+                    Object.assign(sample, phy);
+
+                    loadedSamples.push(sample);
+                }
+
+                telemetryData = loadedSamples;
+                totalReceivedPackets = loadedSamples.length;
+                totalLostPackets = 0;
+                lastPacketId = null;
+                
+                liveFollowMode = false;
+                liveToggle.checked = false;
+                
+                consoleDisplay.innerText = `--- Loaded ${loadedSamples.length} diagnostic points from CSV ---\n`;
+                updateTimelineSliders();
+                requestAnimationFrame(drawPlots);
+            };
+            reader.readAsText(file);
         });
 
-        // Trigger redraw on window width change
-        document.getElementById('window-size-analysis').addEventListener('change', () => {
-            requestAnimationFrame(drawAnalysisPlots);
+        // --- High-Fidelity App Simulator ---
+        document.getElementById('btn-simulate').addEventListener('click', () => {
+            telemetryData = [];
+            totalReceivedPackets = 0;
+            totalLostPackets = 0;
+            lastPacketId = null;
+
+            const sampleCount = 1500;
+            const targetERPM = CONFIG.target_erpm;
+
+            for (let i = 0; i < sampleCount; i++) {
+                const t = i / 50.0;
+                let super_state = 0;
+                let rpm = 0.0;
+                let speed_tgt = 0.0;
+                let speed_iterm = 0.0;
+                let ibus = 0.0;
+                let accel = 0.0;
+                let vbus = 14.2;
+                let iq = 0.0;
+                let id = 0.0;
+                let if_curr = 0.0;
+                let duty = 0.0;
+                let ctrl_mode = 10;
+
+                if (t < 2.0) {
+                    super_state = 3;
+                    if_curr = t * 1.4;
+                    vbus = 14.2 - 0.2 * t;
+                    ibus = 0.4;
+                } else if (t < 7.0) {
+                    super_state = 4;
+                    ctrl_mode = 1;
+                    const startT = t - 2.0;
+                    if_curr = 2.8;
+                    speed_tgt = Math.min(targetERPM, startT * (targetERPM / 4.0));
+                    rpm = Math.max(0, speed_tgt - (180.0 + Math.sin(t * 30.0) * 120.0));
+                    accel = (targetERPM / 4.0) + Math.sin(t * 10.0) * 50.0;
+                    iq = 40.0 + Math.sin(t * 12.0) * 15.0;
+                    ibus = 25.0 + Math.sin(t * 12.0) * 10.0;
+                    vbus = 12.4 - Math.sin(t * 12.0) * 0.3;
+                    duty = 0.4 + (rpm / targetERPM) * 0.4;
+                } else if (t < 8.0) {
+                    super_state = 5;
+                    ctrl_mode = 10;
+                    rpm = targetERPM + 100.0 - (t - 7.0) * 300.0;
+                    vbus = 14.0 + (t - 7.0) * 0.4;
+                    ibus = -5.0;
+                } else {
+                    super_state = 5;
+                    ctrl_mode = 10;
+                    rpm = targetERPM - 200.0 + Math.sin(t) * 100.0;
+                    vbus = 14.4 + Math.sin(t * 2.0) * 0.1;
+                    ibus = -8.0;
+                }
+
+                const sample = {
+                    timestamp: Date.now() - (sampleCount - i) * 20,
+                    packet_id: i + 1,
+                    super_state,
+                    mc_state: 2,
+                    ctrl_mode,
+                    rpm,
+                    accel_avg: accel,
+                    accel_mad: 5.0,
+                    iq_avg: iq,
+                    iq_mad: 2.0,
+                    iq_target: speed_tgt / 100,
+                    id_avg: id,
+                    id_min: id - 2,
+                    id_max: id + 2,
+                    if_avg: if_curr,
+                    if_mad: 0.1,
+                    field_pwm_avg: if_curr / 3.0,
+                    field_pwm_mad: 0.01,
+                    vbus_avg: vbus,
+                    vbus_min: vbus - 0.1,
+                    vbus_max: vbus + 0.1,
+                    duty_avg: duty,
+                    duty_max: duty + 0.02,
+                    if_min: if_curr - 0.05,
+                    stator_fw_id: 0.0,
+                    speed_target: speed_tgt,
+                    speed_i_term: speed_iterm,
+                    i_bus: ibus
+                };
+
+                const phy = runPhysicsMath(sample);
+                Object.assign(sample, phy);
+
+                telemetryData.push(sample);
+            }
+
+            liveFollowMode = false;
+            liveToggle.checked = false;
+
+            consoleDisplay.innerText = `--- Local Simulator Initialized: Generated ${sampleCount} frames ---\n`;
+            updateTimelineSliders();
+            requestAnimationFrame(drawPlots);
         });
 
+        // --- Interactive Command Terminal Input Hooks ---
+        const btnSendTerminal = document.getElementById('btn-send');
+        const termInputBox = document.getElementById('terminal-input');
+
+        btnSendTerminal.addEventListener('click', () => {
+            const cmd = termInputBox.value;
+            if (cmd.trim()) {
+                consoleDisplay.innerText += `> ${cmd}\n`;
+                consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
+                termInputBox.value = "";
+            }
+        });
+
+        termInputBox.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') btnSendTerminal.click();
+        });
+
+        // --- Dynamic Version Propagator ---
         (function applyDynamicVersion() {
-            // Update browser tab/window title
             document.title = `WRSM Diagnostics Workstation v${APP_VERSION}`;
-            
-            // Locate the main header and append the version number
             const mainHeader = document.querySelector('header h1');
             if (mainHeader) {
                 mainHeader.innerText = `WRSM Diagnostics Workstation v${APP_VERSION}`;
