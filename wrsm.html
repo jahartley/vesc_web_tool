@@ -374,25 +374,8 @@
         <!-- SIDEBAR CONTROLS -->
         <div class="sidebar">
             
-            <!-- Connection Card -->
-            <div class="card">
-                <div class="card-title">Serial Connection</div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                    <div>
-                        <label>Baud Rate</label>
-                        <select id="baudrate">
-                            <option value="115200" selected>115200 (USB)</option>
-                            <option value="921600">921600 (High)</option>
-                        </select>
-                    </div>
-                    <div style="display: flex; align-items: flex-end;">
-                        <button id="btn-connect" style="height: 30px;">Connect Port</button>
-                    </div>
-                </div>
-            </div>
-
             <!-- Unified Physics & Lookup Inspector Card -->
-            <div class="card" style="flex-grow: 1; min-height: 0; overflow-y: auto;">
+            <div class="card">
                 <div class="card-title">
                     Physics Inspector
                     <span id="inspecting-status" style="font-size: 0.7rem; color: var(--accent-gold); text-transform: none;">[Live]</span>
@@ -466,6 +449,23 @@
                     <div class="inspector-row">
                         <span class="inspector-label">System Efficiency:</span>
                         <span id="insp-efficiency" class="inspector-val" style="color: #a855f7; font-size: 0.85rem;">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Connection Card -->
+            <div class="card">
+                <div class="card-title">Serial Connection</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div>
+                        <label>Baud Rate</label>
+                        <select id="baudrate">
+                            <option value="115200" selected>115200 (USB)</option>
+                            <option value="921600">921600 (High)</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; align-items: flex-end;">
+                        <button id="btn-connect" style="height: 30px;">Connect Port</button>
                     </div>
                 </div>
             </div>
@@ -593,7 +593,7 @@
     </div>
 
     <script>
-        const APP_VERSION = "0.07";
+        const APP_VERSION = "0.08";
         // --- CONFIGURATION & TELEMETRY DEFINITION ---
         const PACKET_SIZE = 101;
         const NBR_FLOATS = 23;
