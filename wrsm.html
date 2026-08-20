@@ -622,7 +622,7 @@
     </div>
 
     <script>
-        const APP_VERSION = "0.15";
+        const APP_VERSION = "0.16";
         const PACKET_SIZE = 101;
         const START_MARKER = 0xAA;
 
@@ -1274,6 +1274,107 @@
                 ctx.fillStyle = "var(--accent-gold)";
                 ctx.font = "bold 9px monospace";
                 ctx.fillText(`Pt:${telemetryData[activeHoverIdx].packet_id}`, hoverX + 4, h - 10);
+            }
+
+            // 3. NEW: Value Overlay HUD (Inspecting active line telemetry)
+            const activeLineIdx = (activeHoverIdx !== null) ? activeHoverIdx : playheadIdx;
+            if (activeLineIdx !== null && telemetryData[activeLineIdx]) {
+                const sample = telemetryData[activeLineIdx];
+                const activeItems = TELEMETRY_LAYOUT.filter(v => v.active);
+
+                if (activeItems.length > 0) {
+                    const lineX = ((activeLineIdx - startIndex) / visibleRange) * w;
+                    
+                    // Overlay HUD dimensions
+                    const boxWidth = 220;
+                    const rowHeight = 16;
+                    const headerHeight = 22;
+                    const boxHeight = headerHeight + (activeItems.length * rowHeight) + 12;
+                    
+                    // Position HUD near cursor, shifting left if we run out of screen space
+                    let boxX = lineX + 15;
+                    if (boxX + boxWidth > w) {
+                        boxX = lineX - boxWidth - 15;
+                    }
+                    
+                    let boxY = 15; // Kept near the top of the canvas
+                    
+                    // Semi-transparent Slate Background with accent border matching the active cursor
+                    ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
+                    ctx.strokeStyle = (activeHoverIdx !== null) ? "var(--accent-gold)" : "var(--accent-blue)";
+                    ctx.lineWidth = 1.5;
+                    
+                    ctx.beginPath();
+                    ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 6);
+                    ctx.fill();
+                    ctx.stroke();
+                    
+                    // HUD Title (Packet Index)
+                    ctx.fillStyle = "#94a3b8";
+                    ctx.font = "bold 10px sans-serif";
+                    ctx.textAlign = "left";
+                    ctx.fillText(`INSPECTING PT: ${sample.packet_id}`, boxX + 10, boxY + 16);
+                    
+                    // Separator
+                    ctx.strokeStyle = "#334155";
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(boxX + 10, boxY + 24);
+                    ctx.lineTo(boxX + boxWidth - 10, boxY + 24);
+                    ctx.stroke();
+                    
+                    // Print each active metric in the HUD
+                    let currentY = boxY + 38;
+                    activeItems.forEach(v => {
+                        const rawVal = sample[v.name];
+                        let formattedVal = "-";
+                        
+                        if (rawVal !== undefined && rawVal !== null) {
+                            // Match proper units for a polished UX
+                            if (v.name === "rpm" || v.name === "speed_target") {
+                                formattedVal = Math.round(rawVal).toLocaleString() + " ERPM";
+                            } else if (v.name.includes("efficiency")) {
+                                formattedVal = rawVal.toFixed(1) + "%";
+                            } else if (v.name.includes("flux") || v.name === "flux") {
+                                formattedVal = rawVal.toFixed(2) + " mWb";
+                            } else if (v.name.includes("ld") || v.name.includes("lq")) {
+                                formattedVal = rawVal.toFixed(1) + " uH";
+                            } else if (v.name.includes("torque") || v.name.startsWith("t_")) {
+                                formattedVal = rawVal.toFixed(2) + " Nm";
+                            } else if (v.name.startsWith("power_")) {
+                                formattedVal = Math.round(rawVal).toString() + " W";
+                            } else if (v.name.includes("pwm") || v.name.includes("duty")) {
+                                formattedVal = (rawVal * 100).toFixed(1) + "%";
+                            } else if (v.name.startsWith("vbus")) {
+                                formattedVal = rawVal.toFixed(1) + " V";
+                            } else if (v.name === "i_bus" || v.name.includes("iq") || v.name.includes("id") || v.name.includes("if")) {
+                                formattedVal = rawVal.toFixed(2) + " A";
+                            } else {
+                                formattedVal = rawVal.toFixed(2);
+                            }
+                        }
+                        
+                        // Trace color-dot indicator
+                        ctx.fillStyle = v.color;
+                        ctx.beginPath();
+                        ctx.arc(boxX + 14, currentY - 3, 3.5, 0, 2 * Math.PI);
+                        ctx.fill();
+                        
+                        // Variable label (cleanly stripping standard units to avoid redundant units display)
+                        ctx.fillStyle = "#cbd5e1";
+                        ctx.font = "10px monospace";
+                        ctx.fillText(v.label.split(" (")[0], boxX + 24, currentY);
+                        
+                        // Formatted value
+                        ctx.fillStyle = "#ffffff";
+                        ctx.font = "bold 10px monospace";
+                        ctx.textAlign = "right";
+                        ctx.fillText(formattedVal, boxX + boxWidth - 10, currentY);
+                        ctx.textAlign = "left"; // reset alignment
+                        
+                        currentY += rowHeight;
+                    });
+                }
             }
         }
 
@@ -1936,12 +2037,12 @@
             totalLostPackets = 0;
             lastPacketId = null;
 
-            const sampleCount = 1500; // 30 seconds @ 50Hz
+            const sampleCount = 2500; // Expanded to 50 seconds @ 50Hz (30s original + 10s pause + 10s failed start/stop)
             const targetERPM = CONFIG.target_erpm;
 
             for (let i = 0; i < sampleCount; i++) {
                 const t = i / 50.0; // Simulated time in seconds
-                let super_state = 0; // standby
+                let super_state = 0; // standby (OFF)
                 let rpm = 0.0;
                 let speed_tgt = 0.0;
                 let speed_iterm = 0.0;
@@ -1954,61 +2055,110 @@
                 let duty = 0.0;
                 let ctrl_mode = 10; // MC_CONTROL_MODE_NONE
 
+                // ==================== 1. ORIGINAL 30s SEQUENCE ====================
                 if (t < 2.0) {
-                    // Pre-excitation
+                    // Phase 1a: Pre-excitation
                     super_state = 3; // PRE_EXCITE
-                    if_curr = t * 1.4; // ramp up field current
+                    if_curr = t * 1.4; 
                     vbus = 14.2 - 0.2 * t;
-                    ibus = 0.4; // tiny aux bridge draw
+                    ibus = 0.4;
                 } else if (t < 7.0) {
-                    // Engine Cranking Ramping
+                    // Phase 1b: Engine Cranking Ramping (Successful starting attempt)
                     super_state = 4; // CRANKING
                     ctrl_mode = 1; // CONTROL_MODE_SPEED
                     const startT = t - 2.0;
                     if_curr = 2.8;
-                    // Speed PID Target and actual lag calculation
                     speed_tgt = Math.min(targetERPM, startT * (targetERPM / 4.0));
-                    rpm = Math.max(0, speed_tgt - (180.0 + Math.sin(t * 30.0) * 120.0)); // Cylinder compression sags
+                    rpm = Math.max(0, speed_tgt - (180.0 + Math.sin(t * 30.0) * 120.0)); 
                     accel = (targetERPM / 4.0) + Math.sin(t * 30.0) * 150;
                     iq = 110 - startT * 10;
                     duty = Math.min(0.85, 0.15 + startT * 0.14);
-                    ibus = (iq * duty) + 1.5; // active stator draw + rotor excitation
+                    ibus = (iq * duty) + 1.5; 
                     speed_iterm = 10.5 + startT * 3.5;
-                    vbus = 11.2 + Math.random() * 0.4; // voltage sag
+                    vbus = 11.2 + Math.random() * 0.4; 
                 } else if (t < 20.0) {
-                    // Alternator charging / Running State
+                    // Phase 1c: Alternator charging / Running State
                     super_state = 5; // ALTERNATOR
                     ctrl_mode = 2; // CONTROL_MODE_CURRENT
                     if_curr = 1.2 + Math.sin(t * 0.5) * 0.4;
-                    rpm = 3000 + Math.sin(t * 2.0) * 200; // engine idle
+                    rpm = 3000 + Math.sin(t * 2.0) * 200; 
                     accel = Math.sin(t * 2.0) * 40;
-                    iq = -55.0 - Math.sin(t * 1.5) * 10; // Negative stator generating current
+                    iq = -55.0 - Math.sin(t * 1.5) * 10; 
                     duty = 0.45;
-                    ibus = (iq * duty); // Negative battery current charging!
+                    ibus = (iq * duty); 
                     vbus = 13.8 + Math.sin(t * 0.5) * 0.2;
                 } else if (t < 25.0) {
-                    // Drag down near a Stall catch transient
+                    // Phase 1d: Stall catch transient
                     super_state = 6; // STALL_CATCH
-                    ctrl_mode = 1; // speed control catch mode
+                    ctrl_mode = 1; 
                     const stallT = t - 20.0;
                     if_curr = 2.8;
                     speed_tgt = CONFIG.stall_erpm;
-                    rpm = Math.max(800, 3000 - stallT * 600); // speed drops!
+                    rpm = Math.max(800, 3000 - stallT * 600); 
                     accel = -600 + Math.sin(t * 50.0) * 350;
-                    iq = Math.min(150.0, stallT * 42); // Maximum current dump to catch block!
+                    iq = Math.min(150.0, stallT * 42); 
                     duty = 0.75;
                     ibus = (iq * duty) + 1.5;
-                    speed_iterm = 22.0; // Saturated I-Term pushing limits
-                    vbus = 11.8 - stallT * 0.3; // battery sag under heavy catch
-                } else {
-                    // Post-stall / Coast down to OFF
+                    speed_iterm = 22.0; 
+                    vbus = 11.8 - stallT * 0.3; 
+                } else if (t < 30.0) {
+                    // Phase 1e: Post-stall / Coast down to OFF
                     super_state = 2; // STOPPING
                     ctrl_mode = 10;
                     const stopT = t - 25.0;
                     rpm = Math.max(0, 800 - stopT * 160);
                     accel = -160;
-                    if_curr = Math.max(0, 2.8 - stopT * 1.5); // decay field
+                    if_curr = Math.max(0, 2.8 - stopT * 1.5); 
                     vbus = 12.8;
+
+                // ==================== 2. NEW 10s PAUSE ====================
+                } else if (t < 40.0) {
+                    // Phase 2: System is Stopped / Resting at stand-still
+                    super_state = 0; // OFF
+                    ctrl_mode = 10;
+                    rpm = 0.0;
+                    accel = 0.0;
+                    if_curr = 0.0;
+                    iq = 0.0;
+                    ibus = 0.0;
+                    vbus = 12.8; // Battery recovers to steady state
+
+                // ==================== 3. NEW FAILED START EVENT ====================
+                } else if (t < 42.0) {
+                    // Phase 3a: Second Pre-excitation attempt
+                    super_state = 3; // PRE_EXCITE
+                    ctrl_mode = 10;
+                    const exciteT = t - 40.0;
+                    if_curr = exciteT * 1.4; // ramp up field current
+                    vbus = 12.8 - 0.2 * exciteT;
+                    ibus = 0.4;
+                } else if (t < 47.0) {
+                    // Phase 3b: Second Cranking Attempt (Mechanical struggle / fails to fire)
+                    super_state = 4; // CRANKING
+                    ctrl_mode = 1; // CONTROL_MODE_SPEED
+                    const startT2 = t - 42.0;
+                    if_curr = 2.8;
+                    
+                    // Slow sluggish climb, struggles heavily to reach cranking target speed
+                    speed_tgt = Math.min(targetERPM, startT2 * (targetERPM / 4.0));
+                    rpm = Math.max(0, (startT2 * 320.0) - (150.0 + Math.sin(t * 40.0) * 110.0)); 
+                    accel = 320.0 + Math.sin(t * 40.0) * 80.0;
+                    
+                    // Severe current demand and duty cycle saturation trying to turn it over
+                    iq = 135.0 - startT2 * 5.0; 
+                    duty = Math.min(0.92, 0.25 + startT2 * 0.16); // Hits voltage headroom clip limits!
+                    ibus = (iq * duty) + 1.5;
+                    speed_iterm = 18.0 + startT2 * 4.5; // PID integrator windup
+                    vbus = 10.1 + Math.random() * 0.3; // Extreme battery voltage sag under massive drag
+                } else {
+                    // Phase 3c: Cranking timeout / Fallback to stop state
+                    super_state = 2; // STOPPING
+                    ctrl_mode = 10;
+                    const stopT2 = t - 47.0;
+                    rpm = Math.max(0, 1500 - stopT2 * 500); // Decays rapidly to stop
+                    accel = -500;
+                    if_curr = Math.max(0, 2.8 - stopT2 * 1.8); // Drop rotor field excitation
+                    vbus = 12.6;
                 }
 
                 // Append minor high-frequency noise elements to float variables
@@ -2055,7 +2205,7 @@
             totalReceivedPackets = sampleCount;
             liveFollowMode = false;
             liveToggle.checked = false;
-            consoleDisplay.innerText = "--- Generated 30-Second Cranking & Stall Run Simulation Data ---\n";
+            consoleDisplay.innerText = "--- Generated 50-Second Multi-Event (Crank, Stall, Pause, Failed Crank) Simulation Data ---\n";
             updateTimelineSliders();
             requestAnimationFrame(drawPlots);
         });
