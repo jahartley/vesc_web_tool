@@ -622,7 +622,7 @@
     </div>
 
     <script>
-        const APP_VERSION = "0.14";
+        const APP_VERSION = "0.15";
         const PACKET_SIZE = 101;
         const START_MARKER = 0xAA;
 
@@ -1936,12 +1936,12 @@
             totalLostPackets = 0;
             lastPacketId = null;
 
-            const sampleCount = 1500;
+            const sampleCount = 1500; // 30 seconds @ 50Hz
             const targetERPM = CONFIG.target_erpm;
 
             for (let i = 0; i < sampleCount; i++) {
-                const t = i / 50.0;
-                let super_state = 0;
+                const t = i / 50.0; // Simulated time in seconds
+                let super_state = 0; // standby
                 let rpm = 0.0;
                 let speed_tgt = 0.0;
                 let speed_iterm = 0.0;
@@ -1952,80 +1952,110 @@
                 let id = 0.0;
                 let if_curr = 0.0;
                 let duty = 0.0;
-                let ctrl_mode = 10;
+                let ctrl_mode = 10; // MC_CONTROL_MODE_NONE
 
                 if (t < 2.0) {
-                    super_state = 3;
-                    if_curr = t * 1.4;
+                    // Pre-excitation
+                    super_state = 3; // PRE_EXCITE
+                    if_curr = t * 1.4; // ramp up field current
                     vbus = 14.2 - 0.2 * t;
-                    ibus = 0.4;
+                    ibus = 0.4; // tiny aux bridge draw
                 } else if (t < 7.0) {
-                    super_state = 4;
-                    ctrl_mode = 1;
+                    // Engine Cranking Ramping
+                    super_state = 4; // CRANKING
+                    ctrl_mode = 1; // CONTROL_MODE_SPEED
                     const startT = t - 2.0;
                     if_curr = 2.8;
+                    // Speed PID Target and actual lag calculation
                     speed_tgt = Math.min(targetERPM, startT * (targetERPM / 4.0));
-                    rpm = Math.max(0, speed_tgt - (180.0 + Math.sin(t * 30.0) * 120.0));
-                    accel = (targetERPM / 4.0) + Math.sin(t * 10.0) * 50.0;
-                    iq = 40.0 + Math.sin(t * 12.0) * 15.0;
-                    ibus = 25.0 + Math.sin(t * 12.0) * 10.0;
-                    vbus = 12.4 - Math.sin(t * 12.0) * 0.3;
-                    duty = 0.4 + (rpm / targetERPM) * 0.4;
-                } else if (t < 8.0) {
-                    super_state = 5;
-                    ctrl_mode = 10;
-                    rpm = targetERPM + 100.0 - (t - 7.0) * 300.0;
-                    vbus = 14.0 + (t - 7.0) * 0.4;
-                    ibus = -5.0;
+                    rpm = Math.max(0, speed_tgt - (180.0 + Math.sin(t * 30.0) * 120.0)); // Cylinder compression sags
+                    accel = (targetERPM / 4.0) + Math.sin(t * 30.0) * 150;
+                    iq = 110 - startT * 10;
+                    duty = Math.min(0.85, 0.15 + startT * 0.14);
+                    ibus = (iq * duty) + 1.5; // active stator draw + rotor excitation
+                    speed_iterm = 10.5 + startT * 3.5;
+                    vbus = 11.2 + Math.random() * 0.4; // voltage sag
+                } else if (t < 20.0) {
+                    // Alternator charging / Running State
+                    super_state = 5; // ALTERNATOR
+                    ctrl_mode = 2; // CONTROL_MODE_CURRENT
+                    if_curr = 1.2 + Math.sin(t * 0.5) * 0.4;
+                    rpm = 3000 + Math.sin(t * 2.0) * 200; // engine idle
+                    accel = Math.sin(t * 2.0) * 40;
+                    iq = -55.0 - Math.sin(t * 1.5) * 10; // Negative stator generating current
+                    duty = 0.45;
+                    ibus = (iq * duty); // Negative battery current charging!
+                    vbus = 13.8 + Math.sin(t * 0.5) * 0.2;
+                } else if (t < 25.0) {
+                    // Drag down near a Stall catch transient
+                    super_state = 6; // STALL_CATCH
+                    ctrl_mode = 1; // speed control catch mode
+                    const stallT = t - 20.0;
+                    if_curr = 2.8;
+                    speed_tgt = CONFIG.stall_erpm;
+                    rpm = Math.max(800, 3000 - stallT * 600); // speed drops!
+                    accel = -600 + Math.sin(t * 50.0) * 350;
+                    iq = Math.min(150.0, stallT * 42); // Maximum current dump to catch block!
+                    duty = 0.75;
+                    ibus = (iq * duty) + 1.5;
+                    speed_iterm = 22.0; // Saturated I-Term pushing limits
+                    vbus = 11.8 - stallT * 0.3; // battery sag under heavy catch
                 } else {
-                    super_state = 5;
+                    // Post-stall / Coast down to OFF
+                    super_state = 2; // STOPPING
                     ctrl_mode = 10;
-                    rpm = targetERPM - 200.0 + Math.sin(t) * 100.0;
-                    vbus = 14.4 + Math.sin(t * 2.0) * 0.1;
-                    ibus = -8.0;
+                    const stopT = t - 25.0;
+                    rpm = Math.max(0, 800 - stopT * 160);
+                    accel = -160;
+                    if_curr = Math.max(0, 2.8 - stopT * 1.5); // decay field
+                    vbus = 12.8;
                 }
+
+                // Append minor high-frequency noise elements to float variables
+                const noise = () => (Math.random() - 0.5) * 0.05;
 
                 const sample = {
                     timestamp: Date.now() - (sampleCount - i) * 20,
-                    packet_id: i + 1,
+                    packet_id: i,
                     super_state,
-                    mc_state: 2,
+                    mc_state: rpm > 100 ? 2 : 0,
                     ctrl_mode,
-                    rpm,
+                    rpm: rpm + noise() * 10,
                     accel_avg: accel,
-                    accel_mad: 5.0,
-                    iq_avg: iq,
-                    iq_mad: 2.0,
-                    iq_target: speed_tgt / 100,
+                    accel_mad: Math.abs(accel * 0.15) + Math.random() * 20,
+                    iq_avg: iq + noise() * 5,
+                    iq_mad: Math.abs(iq * 0.08) + Math.random() * 2,
+                    iq_target: iq,
                     id_avg: id,
                     id_min: id - 2,
                     id_max: id + 2,
                     if_avg: if_curr,
-                    if_mad: 0.1,
+                    if_mad: Math.abs(if_curr * 0.05) + Math.random() * 0.1,
                     field_pwm_avg: if_curr / 3.0,
-                    field_pwm_mad: 0.01,
+                    field_pwm_mad: Math.random() * 0.02,
                     vbus_avg: vbus,
-                    vbus_min: vbus - 0.1,
-                    vbus_max: vbus + 0.1,
+                    vbus_min: vbus - 0.2,
+                    vbus_max: vbus + 0.2,
                     duty_avg: duty,
-                    duty_max: duty + 0.02,
-                    if_min: if_curr - 0.05,
+                    duty_max: duty + 0.05,
+                    if_min: if_curr - 0.1,
                     stator_fw_id: 0.0,
+                    // Aligned Tuning fields
                     speed_target: speed_tgt,
                     speed_i_term: speed_iterm,
-                    i_bus: ibus
+                    i_bus: ibus + noise() * 2
                 };
 
+                // Append derived physics to the simulated sample on arrival
                 const phy = runPhysicsMath(sample);
                 Object.assign(sample, phy);
-
                 telemetryData.push(sample);
             }
 
+            totalReceivedPackets = sampleCount;
             liveFollowMode = false;
             liveToggle.checked = false;
-
-            consoleDisplay.innerText = `--- Local Simulator Initialized: Generated ${sampleCount} frames ---\n`;
+            consoleDisplay.innerText = "--- Generated 30-Second Cranking & Stall Run Simulation Data ---\n";
             updateTimelineSliders();
             requestAnimationFrame(drawPlots);
         });
