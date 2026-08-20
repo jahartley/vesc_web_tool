@@ -617,12 +617,48 @@
                         <input type="number" id="cfg-stall-accel" value="-1000" step="100">
                     </div>
                 </div>
+
+                <div class="settings-divider" style="border-top: 1px solid #1e293b; margin: 10px 0;"></div>
+                <div class="settings-section-title" style="font-size: 0.75rem; font-weight: bold; color: var(--accent-gold); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">Starting Speed PID</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div>
+                        <label>Speed Kp</label>
+                        <input type="number" id="cfg-pid-kp" value="0.10" step="0.01" min="0.001">
+                    </div>
+                    <div>
+                        <label>Speed Ki</label>
+                        <input type="number" id="cfg-pid-ki" value="0.040" step="0.005" min="0.0">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div>
+                        <label>Speed Kd</label>
+                        <input type="number" id="cfg-pid-kd" value="0.0003" step="0.0001" min="0.0">
+                    </div>
+                    <div>
+                        <label>Kd Filter Cutoff</label>
+                        <input type="number" id="cfg-pid-kd-filter" value="0.20" step="0.05" min="0.01" max="1.0">
+                    </div>
+                </div>
+
+                <div class="settings-divider" style="border-top: 1px solid #1e293b; margin: 10px 0;"></div>
+                <div class="settings-section-title" style="font-size: 0.75rem; font-weight: bold; color: var(--accent-blue); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">Stall Catch Speed PID</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div>
+                        <label>Stall Kp</label>
+                        <input type="number" id="cfg-stall-kp" value="0.15" step="0.01" min="0.001">
+                    </div>
+                    <div>
+                        <label>Stall Ki</label>
+                        <input type="number" id="cfg-stall-ki" value="0.080" step="0.005" min="0.0">
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        const APP_VERSION = "0.16";
+        const APP_VERSION = "0.17";
         const PACKET_SIZE = 101;
         const START_MARKER = 0xAA;
 
@@ -633,7 +669,15 @@
             handoff_erpm: 1000.0,
             target_erpm: 4800.0,
             stall_erpm: 2000.0,
-            stall_accel: -1000.0
+            stall_accel: -1000.0,
+            // Starting Speed PID
+            s_pid_kp: 0.10,
+            s_pid_ki: 0.040,
+            s_pid_kd: 0.0003,
+            s_pid_kd_filter: 0.20,
+            // Stall Catch Speed PID
+            stall_kp: 0.15,
+            stall_ki: 0.080
         };
 
         // Shared Physics Inspector Card Template
@@ -892,7 +936,17 @@
             CONFIG.stall_erpm   = parseFloat(document.getElementById('cfg-stall-erpm').value) || 2000.0;
             CONFIG.stall_accel  = parseFloat(document.getElementById('cfg-stall-accel').value) || -1000.0;
 
+            // Sync PID adjustments
+            CONFIG.s_pid_kp        = parseFloat(document.getElementById('cfg-pid-kp').value) || 0.10;
+            CONFIG.s_pid_ki        = parseFloat(document.getElementById('cfg-pid-ki').value) || 0.040;
+            CONFIG.s_pid_kd        = parseFloat(document.getElementById('cfg-pid-kd').value) || 0.0003;
+            CONFIG.s_pid_kd_filter = parseFloat(document.getElementById('cfg-pid-kd-filter').value) || 0.20;
+            CONFIG.stall_kp        = parseFloat(document.getElementById('cfg-stall-kp').value) || 0.15;
+            CONFIG.stall_ki        = parseFloat(document.getElementById('cfg-stall-ki').value) || 0.080;
+
             consoleDisplay.innerText += `--- Settings Applied: PP=${CONFIG.pole_pairs}, Rfield=${CONFIG.field_r_ohms}Ω ---\n`;
+            consoleDisplay.innerText += `    Start PID : Kp=${CONFIG.s_pid_kp.toFixed(4)}, Ki=${CONFIG.s_pid_ki.toFixed(3)}\n`;
+            consoleDisplay.innerText += `    Stall PID : Kp=${CONFIG.stall_kp.toFixed(4)}, Ki=${CONFIG.stall_ki.toFixed(3)}\n`;
             consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
 
             if (telemetryData.length > 0) {
@@ -1656,6 +1710,7 @@
             const preCrankSlice = entireLog.slice(ev.startIndex, ev.crankingStartIndex);
             const crankingSlice = entireLog.slice(ev.crankingStartIndex, ev.endIndex);
 
+            // --- STEP 1: RESOLVE BATTERY REST VOLTAGE ---
             let v_rest = 14.2;
             if (preCrankSlice.length > 0) {
                 const vbus_sum = preCrankSlice.reduce((sum, d) => sum + d.vbus_avg, 0);
@@ -1664,118 +1719,220 @@
                 v_rest = entireLog[ev.startIndex].vbus_avg;
             }
 
-            let samples = crankingSlice.length;
-            let duration_ms = samples * 20;
-
-            let max_error = 0;
-            let error_sum = 0;
-            let peak_iq = 0;
-            let iq_sum = 0;
-            let peak_iterm = 0;
-            let min_vbus = Infinity;
-            let max_duty = 0;
-
-            let peak_torque = 0;
-            let torque_sum = 0;
-            let peak_t_mag = 0;
-            let peak_t_rel = 0;
-            let peak_power = 0;
-            let mech_power_sum = 0;
-            let elec_power_sum = 0;
-
-            let r_sys_sum = 0;
-            let r_sys_count = 0;
+            // --- STEP 2: DYNAMICALLY SEGMENT TELEMETRY INTO 3 ENVELOPES ---
+            const openLoopSlice = [];
+            const rampSlice = [];
+            const holdSlice = [];
 
             crankingSlice.forEach(d => {
-                const error = d.speed_target - d.rpm;
-                const abs_error = Math.abs(error);
-                if (abs_error > max_error) max_error = abs_error;
-                error_sum += abs_error;
-
-                const abs_iq = Math.abs(d.iq_avg);
-                if (abs_iq > peak_iq) peak_iq = abs_iq;
-                iq_sum += abs_iq;
-
-                if (Math.abs(d.speed_i_term) > peak_iterm) peak_iterm = Math.abs(d.speed_i_term);
-                if (d.vbus_min < min_vbus) min_vbus = d.vbus_min;
-                if (d.duty_max > max_duty) max_duty = d.duty_max;
-
-                if (Math.abs(d.t_total) > peak_torque) peak_torque = Math.abs(d.t_total);
-                torque_sum += d.t_total;
-
-                if (Math.abs(d.t_mag) > peak_t_mag) peak_t_mag = Math.abs(d.t_mag);
-                if (Math.abs(d.t_rel) > peak_t_rel) peak_t_rel = Math.abs(d.t_rel);
-
-                if (d.power_mech > peak_power) peak_power = d.power_mech;
-                mech_power_sum += Math.max(0, d.power_mech);
-                elec_power_sum += Math.max(0, d.power_elec_total);
-
-                // Dynamic Cabling Resistance math
-                if (d.i_bus > 15.0 && d.vbus_avg < v_rest) {
-                    const r_sys = (v_rest - d.vbus_avg) / d.i_bus;
-                    r_sys_sum += r_sys;
-                    r_sys_count++;
+                if (d.rpm < CONFIG.handoff_erpm) {
+                    openLoopSlice.push(d);
+                } else if (d.rpm < CONFIG.target_erpm * 0.95) {
+                    rampSlice.push(d);
+                } else {
+                    holdSlice.push(d);
                 }
             });
 
-            const avg_error = samples > 0 ? (error_sum / samples) : 0;
-            const avg_iq = samples > 0 ? (iq_sum / samples) : 0;
-            const avg_torque = samples > 0 ? (torque_sum / samples) : 0;
-            const avg_power_mech = samples > 0 ? (mech_power_sum / samples) : 0;
-            const avg_power_elec = samples > 0 ? (elec_power_sum / samples) : 0;
-            const system_efficiency = avg_power_elec > 0 ? (avg_power_mech / avg_power_elec) * 100.0 : 0.0;
-            const avg_r_sys = r_sys_count > 0 ? (r_sys_sum / r_sys_count) : 0;
+            // Helper functions for robust math extraction
+            const getAvg = (arr, prop) => arr.length === 0 ? 0 : arr.reduce((sum, d) => sum + d[prop], 0) / arr.length;
+            const getMax = (arr, prop) => arr.length === 0 ? 0 : arr.reduce((max, d) => d[prop] > max ? d[prop] : max, -Infinity);
+            const getMin = (arr, prop) => arr.length === 0 ? 0 : arr.reduce((min, d) => d[prop] < min ? d[prop] : min, Infinity);
+            const getAbsMax = (arr, prop) => arr.length === 0 ? 0 : arr.reduce((max, d) => Math.abs(d[prop]) > max ? Math.abs(d[prop]) : max, 0);
 
+            const calcCablingRes = (arr, vRest) => {
+                let rSum = 0;
+                let rCount = 0;
+                arr.forEach(d => {
+                    if (d.i_bus > 15.0 && d.vbus_avg < vRest) {
+                        const r_sys = (vRest - d.vbus_avg) / d.i_bus;
+                        // Exclude anomalies
+                        if (r_sys > 0.001 && r_sys < 0.200) {
+                            rSum += r_sys;
+                            rCount++;
+                        }
+                    }
+                });
+                return rCount > 0 ? rSum / rCount : 0;
+            };
+
+            // --- STEP 3: EXTRACT STAGE-SPECIFIC METRICS ---
+            
+            // 1. Open-Loop Breakaway Stats
+            const ol_duration = openLoopSlice.length * 20; // 50Hz = 20ms/sample
+            const ol_peak_iq = getAbsMax(openLoopSlice, "iq_avg");
+            const ol_avg_if = getAvg(openLoopSlice, "if_avg");
+            const ol_peak_ibus = getMax(openLoopSlice, "i_bus");
+            const ol_min_vbus = getMin(openLoopSlice, "vbus_min");
+            const ol_peak_torque = getAbsMax(openLoopSlice, "t_total");
+            const ol_r_sys = calcCablingRes(openLoopSlice, v_rest);
+
+            // 2. Sensorless Ramp Stats
+            const ramp_duration = rampSlice.length * 20;
+            const ramp_first_rpm = rampSlice.length > 0 ? rampSlice[0].rpm : 0;
+            const ramp_last_rpm = rampSlice.length > 0 ? rampSlice[rampSlice.length - 1].rpm : 0;
+            const ramp_accel_measured = ramp_duration > 0 ? ((ramp_last_rpm - ramp_first_rpm) / (ramp_duration / 1000.0)) : 0;
+            const ramp_max_err = getAbsMax(rampSlice, "speed_target") - getMin(rampSlice, "rpm");
+            const ramp_avg_err = rampSlice.length === 0 ? 0 : rampSlice.reduce((sum, d) => sum + Math.abs(d.speed_target - d.rpm), 0) / rampSlice.length;
+            const ramp_avg_input = getAvg(rampSlice, "power_elec_total");
+            const ramp_avg_output = getAvg(rampSlice, "power_mech");
+            const ramp_efficiency = ramp_avg_input > 0 ? (ramp_avg_output / ramp_avg_input) * 100.0 : 0;
+            const ramp_peak_t_mag = getAbsMax(rampSlice, "t_mag");
+            const ramp_peak_t_rel = getAbsMax(rampSlice, "t_rel");
+
+            // 3. Sensorless Hold Stats
+            const hold_duration = holdSlice.length * 20;
+            const hold_avg_rpm = getAvg(holdSlice, "rpm");
+            const hold_max_rpm = getMax(holdSlice, "rpm");
+            const hold_min_rpm = getMin(holdSlice, "rpm");
+            const hold_speed_ripple = holdSlice.length > 0 ? (hold_max_rpm - hold_min_rpm) : 0;
+            const hold_avg_iterm = getAvg(holdSlice, "speed_i_term");
+            const hold_peak_iterm = getAbsMax(holdSlice, "speed_i_term");
+            const hold_avg_iq = getAvg(holdSlice, "iq_avg");
+            const hold_avg_torque = getAvg(holdSlice, "t_total");
+            const hold_avg_t_mag = getAvg(holdSlice, "t_mag");
+            const hold_avg_t_rel = getAvg(holdSlice, "t_rel");
+            const hold_avg_input = getAvg(holdSlice, "power_elec_total");
+            const hold_avg_output = getAvg(holdSlice, "power_mech");
+            const hold_efficiency = hold_avg_input > 0 ? (hold_avg_output / hold_avg_input) * 100.0 : 0;
+            const hold_min_vbus = getMin(holdSlice, "vbus_min");
+
+            // ===================================================================
+            // --- STEP 4: CLOSED-LOOP SPEED PID PERFORMANCE AUDITS ---
+            // ===================================================================
+            const KP = CONFIG.s_pid_kp;   // Active user-defined proportional speed gain
+            const IMAX = 300.0;           // VESC hardware maximum current limit
+            
+            // Audit 1: Startup Pre-Injection Offset Verification
+            const theoretical_offset = CONFIG.handoff_erpm > 0 
+                ? (100.0 / (KP * 0.05 * IMAX)) // target_iq / (kp * 0.05 * max_current)
+                : 0;
+            
+            let actual_start_target = crankingSlice.length > 0 ? crankingSlice[0].speed_target : 0;
+            let offset_error = Math.abs(actual_start_target - theoretical_offset);
+
+            // Audit 2: Open-Loop Integrator Leakage Check
+            let ol_leak_samples = 0;
+            openLoopSlice.forEach(d => {
+                if (Math.abs(d.speed_i_term) > 0.01) {
+                    ol_leak_samples++;
+                }
+            });
+
+            // Audit 3: Proportional vs Integral Stiffness Ratio (Calculated across Ramp)
+            let sum_iq_p = 0;
+            let sum_iq_i = 0;
+            let active_ramp_samples = rampSlice.length;
+
+            rampSlice.forEach(d => {
+                const speed_error = d.speed_target - d.rpm;
+                // Normalised proportional torque current matching foc_math.c:
+                const iq_p = speed_error * KP * 0.05 * IMAX; 
+                sum_iq_p += Math.abs(iq_p);
+                sum_iq_i += Math.abs(d.speed_i_term);
+            });
+
+            const avg_iq_p = active_ramp_samples > 0 ? (sum_iq_p / active_ramp_samples) : 0;
+            const avg_iq_i = active_ramp_samples > 0 ? (sum_iq_i / active_ramp_samples) : 0;
+            const stiffness_ratio = avg_iq_i > 0.1 ? (avg_iq_p / avg_iq_i) : 99.9;
+
+            // Compile PID-specific tuning alerts
+            let pid_tuning_alerts = [];
+            if (offset_error > 250.0 && crankingSlice.length > 0) {
+                pid_tuning_alerts.push(`  -> [DISCONTINUITY]: Setpoint offset mismatch! Supervisor forced ${actual_start_target.toFixed(0)} ERPM, but math predicts ${theoretical_offset.toFixed(0)} ERPM. Check s_pid_kp configurations.`);
+            }
+            if (ol_leak_samples > 1) {
+                pid_tuning_alerts.push(`  -> [LOCKOUT FAILURE]: Speed integrator leaked ${ol_leak_samples} times below handoff speed! Risk of observer sync losses.`);
+            }
+            if (stiffness_ratio < 0.8 && active_ramp_samples > 10) {
+                pid_tuning_alerts.push(`  -> [LAZY P-GAIN]: Stiffness Ratio is low (${stiffness_ratio.toFixed(2)}). Cranking relies too heavily on slow integral wind-up. Increase s_pid_kp.`);
+            }
+            if (stiffness_ratio > 3.0 && active_ramp_samples > 10) {
+                pid_tuning_alerts.push(`  -> [HARSH P-GAIN]: Stiffness Ratio is very high (${stiffness_ratio.toFixed(2)}). The loop is too rigid and maps vibrations into high-frequency current hunting. Lower s_pid_kp.`);
+            }
+            if (pid_tuning_alerts.length === 0) {
+                pid_tuning_alerts.push(`  -> [CLOSED-LOOP OPTIMIZED]: Proportional and Integral torque contributions are perfectly balanced. Startup offsets are nominal.`);
+            }
+
+            // --- STEP 5: HARDWARE & GLOBAL SAFETY ALERTS ENGINE ---
             let alerts = [];
-            if (avg_r_sys > 0.025) {
-                alerts.push(`⚠️ CABLING BOTTLENECK: High cabling resistance detected (${(avg_r_sys * 1000).toFixed(1)} mΩ). Inspect physical starter cables and battery terminal contactors!`);
+            const global_max_duty = getAbsMax(crankingSlice, "duty_max");
+            const global_avg_r_sys = calcCablingRes(crankingSlice, v_rest);
+
+            // DC Cabling resistance warning limit
+            if (global_avg_r_sys > 0.020) {
+                alerts.push(`⚠️ CABLING BOTTLENECK: DC system resistance (${(global_avg_r_sys * 1000).toFixed(1)} mΩ) exceeded the 20 mΩ limit. Check contacts!`);
             }
-            if (max_error > 500 && samples > 0) {
-                alerts.push(`⚠️ SPEED RAMP LAG: Speed tracking error exceeded 500 ERPM. Consider raising 'max iq current limit' or slowing down your Speed PID ramp rate!`);
+            // FOC Voltage saturation duty ceiling
+            if (global_max_duty > 0.88) {
+                alerts.push(`⚠️ VOLTAGE HEADROOM CLIPPED: FOC duty saturated to ${(global_max_duty * 100).toFixed(1)}%. Lacks voltage headroom to push starting current!`);
             }
-            if (max_duty > 0.88) {
-                alerts.push(`⚠️ VOLTAGE HEADROOM CLIPPED: FOC duty saturated to ${max_duty.toFixed(2)}. Inverter lacks voltage headroom to push the demanded starting current. Check battery SOC!`);
-            }
-            if (peak_iterm > (peak_iq * 0.9) && samples > 0) {
-                alerts.push(`⚠️ INTEGRAL WIND-UP: Speed PID Integrator reached ${peak_iterm.toFixed(1)}A. If speed overshoots on engine fire, clamp your integral saturation bounds!`);
+            // Closed-loop mechanical checks in Hold Phase
+            if (holdSlice.length > 10) {
+                if (hold_speed_ripple > 350.0) {
+                    alerts.push(`⚠️ EXCESSIVE SPEED RIPPLE: Crankshaft vibration width reached ${hold_speed_ripple.toFixed(0)} ERPM. Check PID Ki or mechanical mounts!`);
+                }
+                // Belt slip algorithm matching JAH's telemetry bounds:
+                if (hold_speed_ripple < 40.0 && hold_avg_iq > 120.0) {
+                    alerts.push(`⚠️ POTENTIAL BELT SLIP DETECTED: Speed ripple is extremely low (${hold_speed_ripple.toFixed(1)} ERPM) under heavy torque current demand (${hold_avg_iq.toFixed(1)}A)!`);
+                }
+                if (hold_peak_iterm > (ol_peak_iq * 0.9)) {
+                    alerts.push(`⚠️ PID INTEGRATOR WIND-UP: Speed PID I-Term saturated at ${hold_peak_iterm.toFixed(1)}A. Check mechanical drag or clamp I-max limit!`);
+                }
             }
             if (alerts.length === 0) {
-                alerts.push(`✅ CRANKING SUCCESSFUL: All physical limits, speeds, and cabling resistances are within nominal safe parameters.`);
+                alerts.push(`✅ CRANKING SUCCESSFUL: All electrical limits, force-splits, and cabling parameters are within nominal safety envelopes.`);
             }
 
+            // --- STEP 6: COMPILE COMPREHENSIVE TEXT REPORT ---
             const display = document.getElementById('analysis-report-display');
             display.innerHTML = `
-    ============================================================
-            CRANKING START REPORT (EVENT #${ev.id})
-    ============================================================
-    TIME CAPTURED:      ${ev.timestamp}
-    CRANKING DURATION:  ${(duration_ms / 1000).toFixed(2)} seconds (${samples} samples)
-    BATTERY OPEN-VOLT:  ${v_rest.toFixed(2)} V
+===================================================================
+           WRSM STARTER-GENERATOR IGNITION TELEMETRY REPORT
+===================================================================
+CAPTURE TIMESTAMP : ${ev.timestamp}             BATTERY OPEN-VOLT : ${v_rest.toFixed(2)} V
+TOTAL ACTIVE TIME : ${((ol_duration + ramp_duration + hold_duration) / 1000).toFixed(2)} s             TOTAL DATA POINTS : ${crankingSlice.length}
 
-    --- POWER DISTRIBUTION & LOSS ANALYSIS ---
-    BATTERY MIN VOLT:   ${min_vbus.toFixed(2)} V (Sag: ${(v_rest - min_vbus).toFixed(2)}V)
-    AVG CABLING RES:    ${(avg_r_sys * 1000).toFixed(1)} mΩ (Calculated over ${r_sys_count} high-amp frames)
-    PEAK MECHANICAL:    ${peak_power.toFixed(0)} W (${(peak_power / 745.7).toFixed(2)} hp developed)
-    AVG ELECT. INPUT:   ${avg_power_elec.toFixed(0)} W
-    AVG MECH. OUTPUT:   ${avg_power_mech.toFixed(0)} W
-    SYSTEM EFFICIENCY:  ${system_efficiency.toFixed(1)} %
+--- [PHASE 1: OPEN-LOOP BREAKAWAY PROFILE] ---
+DURATION          : ${(ol_duration / 1000).toFixed(2)} s
+BREAKAWAY CURRENT : Peak Stator Iq = ${ol_peak_iq.toFixed(1)} A | Peak Battery = ${ol_peak_ibus.toFixed(1)} A
+ROTOR FIELD COIL  : Avg Excitation = ${ol_avg_if.toFixed(2)} A
+MIN BATTERY VOLT  : ${ol_min_vbus.toFixed(2)} V (Sag: -${(v_rest - ol_min_vbus).toFixed(2)} V)
+BREAKAWAY TORQUE  : Peak developed = ${ol_peak_torque.toFixed(1)} Nm
+SYSTEM DC RES     : Cabling R_sys  = ${(ol_r_sys * 1000).toFixed(1)} mΩ
 
-    --- ELECTROMECHANICAL FORCE SPLITS ---
-    PEAK JOINT TORQUE:  ${peak_torque.toFixed(1)} Nm
-    AVG JOINT TORQUE:   ${avg_torque.toFixed(1)} Nm
-    PEAK MAG FORCE:     ${peak_t_mag.toFixed(1)} Nm (Rotor magnet interaction)
-    PEAK REL FORCE:     ${peak_t_rel.toFixed(1)} Nm (Claw-pole saliency interaction)
+--- [PHASE 2: SENSORLESS Ortega ACCELERATION RAMP] ---
+DURATION          : ${(ramp_duration / 1000).toFixed(2)} s
+ACCEL RAMP RATE   : ${ramp_accel_measured.toFixed(0)} ERPM/s
+TRACKING LAGGARD  : Avg Lag = ${ramp_avg_err.toFixed(0)} ERPM | Max Lag = ${ramp_max_err.toFixed(0)} ERPM
+PEAK FORCE SPLITS : Magnetic = ${ramp_peak_t_mag.toFixed(1)} Nm | Saliency Reluctance = ${ramp_peak_t_rel.toFixed(1)} Nm
+POWER & LOSSES    : Avg Input = ${ramp_avg_input.toFixed(0)} W | Avg Mech Output = ${ramp_avg_output.toFixed(0)} W
+STAGE EFFICIENCY  : ${ramp_efficiency.toFixed(1)} %
 
-    --- CLOSED-LOOP SPEED TUNING ANALYSIS ---
-    TARGET CRANK SPEED: ${CONFIG.target_erpm} ERPM
-    PEAK STATOR IQ:     ${peak_iq.toFixed(1)} A (Avg: ${avg_iq.toFixed(1)}A)
-    MAX SPEED ERROR:    ${max_error.toFixed(0)} ERPM (Avg Lag: ${avg_error.toFixed(0)} ERPM)
-    PEAK PID I-TERM:    ${peak_iterm.toFixed(1)} A
+--- [PHASE 3: SENSORLESS SPEED HOLDING / STEADY STATE] ---
+DURATION          : ${(hold_duration / 1000).toFixed(2)} s
+MEAN HOLDING SPEED: ${hold_avg_rpm.toFixed(0)} ERPM (Target Setpoint: ${CONFIG.target_erpm.toFixed(0)} ERPM)
+COMBUSTION RIPPLE : Pk-Pk Speed Ripple = ${hold_speed_ripple.toFixed(1)} ERPM (Min: ${hold_min_rpm.toFixed(0)} / Max: ${hold_max_rpm.toFixed(0)})
+SPEED PID DRIVER  : Avg Integrator I-Term = ${hold_avg_iterm.toFixed(2)} A | Peak I-Term = ${hold_peak_iterm.toFixed(2)} A
+STEADY CURRENT    : Avg Stator Iq = ${hold_avg_iq.toFixed(1)} A | Min Battery Bus = ${hold_min_vbus.toFixed(2)} V
+TORQUE SPLIT (AVG): Total = ${hold_avg_torque.toFixed(2)} Nm (Mag: ${hold_avg_t_mag.toFixed(2)} Nm / Rel: ${hold_avg_t_rel.toFixed(2)} Nm)
+POWER & LOSSES    : Avg Input = ${hold_avg_input.toFixed(0)} W | Avg Mech Output = ${hold_avg_output.toFixed(0)} W
+STAGE EFFICIENCY  : ${hold_efficiency.toFixed(1)} %
 
-    --- SYSTEM ALERT MESSAGES ---
-    ${alerts.join("\n")}
-    ============================================================
-            `;
+--- [CLOSED-LOOP SPEED PID PERFORMANCE ANALYSIS] ---
+STARTUP OFFSET TARGET : ${theoretical_offset.toFixed(0)} ERPM (First Setpoint: ${actual_start_target.toFixed(0)} ERPM)
+OPEN-LOOP INTEG. LEAK : ${ol_leak_samples} occurrences detected below handoff speed (${CONFIG.handoff_erpm} ERPM)
+MEAN PROP CURRENT (P) : ${avg_iq_p.toFixed(1)} A (Instant corrective force)
+MEAN INTEG CURRENT (I) : ${avg_iq_i.toFixed(1)} A (Steady holding force)
+PID STIFFNESS RATIO   : ${stiffness_ratio.toFixed(2)}  (Target Nominal: 1.0 - 2.2)
+
+--- SPEED PID TUNING RECOMMENDATIONS ---
+${pid_tuning_alerts.join("\n")}
+
+--- WRSM SYSTEM ALERTS & DIAGNOSTICS ---
+${alerts.join("\n")}
+===================================================================
+`;
         }
 
         document.getElementById('btn-perform-analysis').addEventListener('click', performStartAnalysis);
@@ -2037,12 +2194,12 @@
             totalLostPackets = 0;
             lastPacketId = null;
 
-            const sampleCount = 2500; // Expanded to 50 seconds @ 50Hz (30s original + 10s pause + 10s failed start/stop)
+            const sampleCount = 2500; 
             const targetERPM = CONFIG.target_erpm;
 
             for (let i = 0; i < sampleCount; i++) {
-                const t = i / 50.0; // Simulated time in seconds
-                let super_state = 0; // standby (OFF)
+                const t = i / 50.0;
+                let super_state = 0; // standby
                 let rpm = 0.0;
                 let speed_tgt = 0.0;
                 let speed_iterm = 0.0;
@@ -2053,31 +2210,45 @@
                 let id = 0.0;
                 let if_curr = 0.0;
                 let duty = 0.0;
-                let ctrl_mode = 10; // MC_CONTROL_MODE_NONE
+                let ctrl_mode = 10;
 
-                // ==================== 1. ORIGINAL 30s SEQUENCE ====================
+                // Ratios based on standard default tuning values
+                const kp_ratio = CONFIG.s_pid_kp / 0.10;
+                const ki_ratio = CONFIG.s_pid_ki / 0.040;
+                const skp_ratio = CONFIG.stall_kp / 0.15;
+                const ski_ratio = CONFIG.stall_ki / 0.080;
+
                 if (t < 2.0) {
-                    // Phase 1a: Pre-excitation
                     super_state = 3; // PRE_EXCITE
                     if_curr = t * 1.4; 
                     vbus = 14.2 - 0.2 * t;
                     ibus = 0.4;
                 } else if (t < 7.0) {
-                    // Phase 1b: Engine Cranking Ramping (Successful starting attempt)
+                    // Cranking Attempt (Successful)
                     super_state = 4; // CRANKING
                     ctrl_mode = 1; // CONTROL_MODE_SPEED
                     const startT = t - 2.0;
                     if_curr = 2.8;
                     speed_tgt = Math.min(targetERPM, startT * (targetERPM / 4.0));
-                    rpm = Math.max(0, speed_tgt - (180.0 + Math.sin(t * 30.0) * 120.0)); 
+                    
+                    // Speed lag and engine sags decrease as s_pid_kp increases (stiffer loop!)
+                    const lag = 180.0 / kp_ratio;
+                    const ripples = 120.0 / kp_ratio;
+                    rpm = Math.max(0, speed_tgt - (lag + Math.sin(t * 30.0) * ripples)); 
                     accel = (targetERPM / 4.0) + Math.sin(t * 30.0) * 150;
-                    iq = 110 - startT * 10;
+                    
+                    // Corrective Iq is proportional to lag, Integrator accumulates with s_pid_ki
+                    const speed_error = speed_tgt - rpm;
+                    const p_term = speed_error * CONFIG.s_pid_kp * 15.0; // normalised current term
+                    speed_iterm = (10.5 + startT * 3.5) * ki_ratio;
+                    iq = p_term + speed_iterm;
+                    iq = Math.max(0, Math.min(220.0, iq));
+                    
                     duty = Math.min(0.85, 0.15 + startT * 0.14);
                     ibus = (iq * duty) + 1.5; 
-                    speed_iterm = 10.5 + startT * 3.5;
                     vbus = 11.2 + Math.random() * 0.4; 
                 } else if (t < 20.0) {
-                    // Phase 1c: Alternator charging / Running State
+                    // Alternator Mode
                     super_state = 5; // ALTERNATOR
                     ctrl_mode = 2; // CONTROL_MODE_CURRENT
                     if_curr = 1.2 + Math.sin(t * 0.5) * 0.4;
@@ -2088,21 +2259,29 @@
                     ibus = (iq * duty); 
                     vbus = 13.8 + Math.sin(t * 0.5) * 0.2;
                 } else if (t < 25.0) {
-                    // Phase 1d: Stall catch transient
+                    // Stall Catch (Flying Catch Motoring)
                     super_state = 6; // STALL_CATCH
                     ctrl_mode = 1; 
                     const stallT = t - 20.0;
                     if_curr = 2.8;
                     speed_tgt = CONFIG.stall_erpm;
-                    rpm = Math.max(800, 3000 - stallT * 600); 
-                    accel = -600 + Math.sin(t * 50.0) * 350;
-                    iq = Math.min(150.0, stallT * 42); 
+                    
+                    // Drop-rate is physically resisted by a higher stall_kp
+                    const drop_rate = 600.0 / skp_ratio;
+                    rpm = Math.max(800, 3000 - stallT * drop_rate); 
+                    accel = -drop_rate + Math.sin(t * 50.0) * 350;
+                    
+                    // Corrective stator current calculated from stall error
+                    const stall_error = speed_tgt - rpm;
+                    const p_term_stall = stall_error * CONFIG.stall_kp * 15.0;
+                    speed_iterm = 22.0 * ski_ratio; // Integrator pre-seeds stiffly
+                    iq = p_term_stall + speed_iterm;
+                    iq = Math.max(0, Math.min(180.0, iq));
+                    
                     duty = 0.75;
                     ibus = (iq * duty) + 1.5;
-                    speed_iterm = 22.0; 
                     vbus = 11.8 - stallT * 0.3; 
                 } else if (t < 30.0) {
-                    // Phase 1e: Post-stall / Coast down to OFF
                     super_state = 2; // STOPPING
                     ctrl_mode = 10;
                     const stopT = t - 25.0;
@@ -2110,10 +2289,7 @@
                     accel = -160;
                     if_curr = Math.max(0, 2.8 - stopT * 1.5); 
                     vbus = 12.8;
-
-                // ==================== 2. NEW 10s PAUSE ====================
                 } else if (t < 40.0) {
-                    // Phase 2: System is Stopped / Resting at stand-still
                     super_state = 0; // OFF
                     ctrl_mode = 10;
                     rpm = 0.0;
@@ -2121,48 +2297,45 @@
                     if_curr = 0.0;
                     iq = 0.0;
                     ibus = 0.0;
-                    vbus = 12.8; // Battery recovers to steady state
-
-                // ==================== 3. NEW FAILED START EVENT ====================
+                    vbus = 12.8; 
                 } else if (t < 42.0) {
-                    // Phase 3a: Second Pre-excitation attempt
                     super_state = 3; // PRE_EXCITE
                     ctrl_mode = 10;
                     const exciteT = t - 40.0;
-                    if_curr = exciteT * 1.4; // ramp up field current
+                    if_curr = exciteT * 1.4; 
                     vbus = 12.8 - 0.2 * exciteT;
                     ibus = 0.4;
                 } else if (t < 47.0) {
-                    // Phase 3b: Second Cranking Attempt (Mechanical struggle / fails to fire)
+                    // Second Cranking Attempt (Fails to fire)
                     super_state = 4; // CRANKING
-                    ctrl_mode = 1; // CONTROL_MODE_SPEED
+                    ctrl_mode = 1; 
                     const startT2 = t - 42.0;
                     if_curr = 2.8;
-                    
-                    // Slow sluggish climb, struggles heavily to reach cranking target speed
                     speed_tgt = Math.min(targetERPM, startT2 * (targetERPM / 4.0));
-                    rpm = Math.max(0, (startT2 * 320.0) - (150.0 + Math.sin(t * 40.0) * 110.0)); 
+                    
+                    // Heavy cranking drag - Kp-stiffness helps, but engine is sluggish
+                    const lag2 = 300.0 / (kp_ratio * 0.5 + 0.5);
+                    rpm = Math.max(0, (startT2 * 320.0) - (lag2 + Math.sin(t * 40.0) * 110.0)); 
                     accel = 320.0 + Math.sin(t * 40.0) * 80.0;
                     
-                    // Severe current demand and duty cycle saturation trying to turn it over
-                    iq = 135.0 - startT2 * 5.0; 
-                    duty = Math.min(0.92, 0.25 + startT2 * 0.16); // Hits voltage headroom clip limits!
+                    const speed_error2 = speed_tgt - rpm;
+                    const p_term2 = speed_error2 * CONFIG.s_pid_kp * 15.0;
+                    speed_iterm = (18.0 + startT2 * 4.5) * ki_ratio;
+                    iq = p_term2 + speed_iterm;
+                    iq = Math.max(0, Math.min(260.0, iq));
+                    
+                    duty = Math.min(0.92, 0.25 + startT2 * 0.16); 
                     ibus = (iq * duty) + 1.5;
-                    speed_iterm = 18.0 + startT2 * 4.5; // PID integrator windup
-                    vbus = 10.1 + Math.random() * 0.3; // Extreme battery voltage sag under massive drag
+                    vbus = 10.1 + Math.random() * 0.3; 
                 } else {
-                    // Phase 3c: Cranking timeout / Fallback to stop state
                     super_state = 2; // STOPPING
                     ctrl_mode = 10;
                     const stopT2 = t - 47.0;
-                    rpm = Math.max(0, 1500 - stopT2 * 500); // Decays rapidly to stop
+                    rpm = Math.max(0, 1500 - stopT2 * 500); 
                     accel = -500;
-                    if_curr = Math.max(0, 2.8 - stopT2 * 1.8); // Drop rotor field excitation
+                    if_curr = Math.max(0, 2.8 - stopT2 * 1.8); 
                     vbus = 12.6;
                 }
-
-                // Append minor high-frequency noise elements to float variables
-                const noise = () => (Math.random() - 0.5) * 0.05;
 
                 const sample = {
                     timestamp: Date.now() - (sampleCount - i) * 20,
@@ -2190,13 +2363,11 @@
                     duty_max: duty + 0.05,
                     if_min: if_curr - 0.1,
                     stator_fw_id: 0.0,
-                    // Aligned Tuning fields
                     speed_target: speed_tgt,
                     speed_i_term: speed_iterm,
                     i_bus: ibus + noise() * 2
                 };
 
-                // Append derived physics to the simulated sample on arrival
                 const phy = runPhysicsMath(sample);
                 Object.assign(sample, phy);
                 telemetryData.push(sample);
@@ -2205,10 +2376,11 @@
             totalReceivedPackets = sampleCount;
             liveFollowMode = false;
             liveToggle.checked = false;
-            consoleDisplay.innerText = "--- Generated 50-Second Multi-Event (Crank, Stall, Pause, Failed Crank) Simulation Data ---\n";
+            consoleDisplay.innerText = "--- Generated 50-Second Multi-Event PID Telemetry Simulation ---\n";
             updateTimelineSliders();
             requestAnimationFrame(drawPlots);
         });
+
 
         // --- Interactive Command Terminal Input Hooks ---
         const btnSendTerminal = document.getElementById('btn-send');
