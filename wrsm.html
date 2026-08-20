@@ -1366,29 +1366,59 @@
 
         // --- Variable Toggle Creator ---
         function initToggles() {
-            const container = document.getElementById('plot-selectors-container');
-            container.innerHTML = ""; // Clear
+            const reviewContainer = document.getElementById('plot-selectors-container');
+            const analysisContainer = document.getElementById('plot-selectors-analysis-container');
+            
+            // Clear both containers
+            reviewContainer.innerHTML = "";
+            analysisContainer.innerHTML = "";
             
             TELEMETRY_LAYOUT.forEach((v) => {
-                const tag = document.createElement('label');
-                tag.className = "selector-tag";
-                tag.style.color = v.color;
+                // 1. Create Selector for Review Tab
+                const reviewTag = document.createElement('label');
+                reviewTag.className = "selector-tag";
+                reviewTag.style.color = v.color;
                 
-                const checkbox = document.createElement('input');
-                checkbox.type = "checkbox";
-                checkbox.checked = v.active;
-                checkbox.addEventListener('change', (e) => {
-                    v.active = e.target.checked;
-                    syncScaleCards(); // Re-align sidebar cards
-                    requestAnimationFrame(drawPlots);
-                });
+                const reviewCheck = document.createElement('input');
+                reviewCheck.type = "checkbox";
+                reviewCheck.checked = v.active;
+                
+                // 2. Create Selector for Analysis Tab
+                const analysisTag = document.createElement('label');
+                analysisTag.className = "selector-tag";
+                analysisTag.style.color = v.color;
+                
+                const analysisCheck = document.createElement('input');
+                analysisCheck.type = "checkbox";
+                analysisCheck.checked = v.active;
 
-                tag.appendChild(checkbox);
-                tag.appendChild(document.createTextNode(v.label));
-                container.appendChild(tag);
+                // Sync Handler: Mirror checks and trigger active canvas redraws
+                const syncChecks = (isChecked) => {
+                    v.active = isChecked;
+                    reviewCheck.checked = isChecked;
+                    analysisCheck.checked = isChecked;
+                    syncScaleCards();
+                    
+                    if (activeTab === 'review') {
+                        requestAnimationFrame(drawPlots);
+                    } else if (activeTab === 'analysis') {
+                        requestAnimationFrame(drawAnalysisPlots);
+                    }
+                };
+
+                reviewCheck.addEventListener('change', (e) => syncChecks(e.target.checked));
+                analysisCheck.addEventListener('change', (e) => syncChecks(e.target.checked));
+
+                reviewTag.appendChild(reviewCheck);
+                reviewTag.appendChild(document.createTextNode(v.label));
+                reviewContainer.appendChild(reviewTag);
+
+                analysisTag.appendChild(analysisCheck);
+                analysisTag.appendChild(document.createTextNode(v.label));
+                analysisContainer.appendChild(analysisTag);
             });
             
-            syncScaleCards(); // Build initial cards on startup
+            syncScaleCards(); // Build initial scale cards
         }
         initToggles();
 
@@ -1795,6 +1825,389 @@
             if (e.key === 'Enter') btnSend.click();
         });
 
+        // --- START ANALYSIS CODE ---
+        let detectedEvents = [];       // Isolated starts database
+        let selectedEventIndex = -1;   // Pointer to active analyzed event
+
+        function performStartAnalysis() {
+            if (telemetryData.length === 0) {
+                alert("Please load a log file or click 'Simulate Run' first!");
+                return;
+            }
+
+            detectedEvents = [];
+            const count = telemetryData.length;
+            let inCrankingBlock = false;
+            let currentStartIdx = -1;
+
+            // Step A: Scan forward to isolate contiguous blocks of Cranking State (State 4)
+            for (let i = 0; i < count; i++) {
+                const state = telemetryData[i].super_state;
+
+                if (state === 4 && !inCrankingBlock) {
+                    // Cranking begins!
+                    inCrankingBlock = true;
+                    currentStartIdx = i;
+                } else if (state !== 4 && inCrankingBlock) {
+                    // Cranking exits. Let's package this starting run!
+                    inCrankingBlock = false;
+                    const crankingEndIdx = i - 1;
+
+                    // Trace backward to find Pre-Excitation state (State 3) or gather pre-start baseline
+                    let preStartIdx = currentStartIdx;
+                    while (preStartIdx > 0 && (telemetryData[preStartIdx].super_state === 3 || preStartIdx > currentStartIdx - 100)) {
+                        preStartIdx--;
+                    }
+
+                    detectedEvents.push({
+                        id: detectedEvents.length + 1,
+                        startIndex: preStartIdx,                // Start of our isolated timeline
+                        crankingStartIndex: currentStartIdx,     // Transition to active engine cranking
+                        endIndex: Math.min(count - 1, crankingEndIdx + 50), // Include 1s of post-crank data
+                        timestamp: new Date(telemetryData[currentStartIdx].timestamp).toLocaleTimeString()
+                    });
+                }
+            }
+
+            // Handle edge case where log ends while still cranking
+            if (inCrankingBlock) {
+                detectedEvents.push({
+                    id: detectedEvents.length + 1,
+                    startIndex: Math.max(0, currentStartIdx - 100),
+                    crankingStartIndex: currentStartIdx,
+                    endIndex: count - 1,
+                    timestamp: new Date(telemetryData[currentStartIdx].timestamp).toLocaleTimeString()
+                });
+            }
+
+            // Step B: Update Dropdown Selector
+            const selector = document.getElementById('select-analysis-event');
+            selector.innerHTML = ""; // Clear placeholders
+
+            if (detectedEvents.length === 0) {
+                selector.innerHTML = `<option value="">-- No starts found in this log --</option>`;
+                selector.disabled = true;
+                document.getElementById('analysis-report-display').innerHTML = "--- Scan complete: No starting events detected (State 4) ---";
+                return;
+            }
+
+            selector.disabled = false;
+            detectedEvents.forEach((ev, idx) => {
+                const opt = document.createElement('option');
+                opt.value = idx;
+                opt.innerText = `Start #${ev.id} [${ev.timestamp}] (Pts: ${ev.startIndex} to ${ev.endIndex})`;
+                selector.appendChild(opt);
+            });
+
+            // Auto-select the first starting event
+            selectedEventIndex = 0;
+            selector.value = 0;
+            loadAnalysisEvent(0);
+        }
+
+        // Isolates the view limits and timeline sliders to the current event boundary
+        function loadAnalysisEvent(index) {
+            selectedEventIndex = index;
+            const ev = detectedEvents[index];
+            if (!ev) return;
+
+            const slider = document.getElementById('time-slider-analysis');
+            const totalPoints = ev.endIndex - ev.startIndex;
+
+            slider.min = 0;
+            slider.max = totalPoints;
+            slider.value = 0; // default scrub line at start of event
+            slider.disabled = false;
+
+            document.getElementById('slider-min-analysis').innerText = `Pt:${ev.startIndex}`;
+            document.getElementById('slider-max-analysis').innerText = `Pt:${ev.endIndex}`;
+            document.getElementById('active-packet-val-analysis').innerText = telemetryData[ev.startIndex].packet_id;
+
+            // Generate report and redraw canvas
+            calculateCrankingStats(ev);
+            requestAnimationFrame(drawAnalysisPlots);
+        }
+
+        // Renders the isolated cranking data on the secondary canvas
+        function drawAnalysisPlots() {
+            const canvas = document.getElementById('analysisCanvas');
+            if (!canvas) return;
+
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            const w = canvas.width;
+            const h = canvas.height;
+            const ctx = canvas.getContext('2d');
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Draw Background Grid
+            ctx.strokeStyle = "#1e293b";
+            ctx.lineWidth = 1;
+            for (let gridX = 0; gridX < w; gridX += w / 10) {
+                ctx.beginPath(); ctx.moveTo(gridX, 0); ctx.lineTo(gridX, h); ctx.stroke();
+            }
+            for (let gridY = 0; gridY < h; gridY += h / 6) {
+                ctx.beginPath(); ctx.moveTo(0, gridY); ctx.lineTo(w, gridY); ctx.stroke();
+            }
+
+            if (selectedEventIndex === -1 || detectedEvents.length === 0) {
+                ctx.fillStyle = "var(--text-muted)";
+                ctx.font = "14px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("Ready to analyze starts. Click 'Perform Start Analysis' above.", w / 2, h / 2);
+                return;
+            }
+
+            const ev = detectedEvents[selectedEventIndex];
+            const activeSlice = telemetryData.slice(ev.startIndex, ev.endIndex + 1);
+            if (activeSlice.length <= 1) return;
+
+            // Draw Phase Marker Dividers
+            const totalRange = ev.endIndex - ev.startIndex;
+            
+            // Mark Pre-Excitation Transition (if within the slice)
+            if (ev.crankingStartIndex > ev.startIndex) {
+                const crankMarkerX = ((ev.crankingStartIndex - ev.startIndex) / totalRange) * w;
+                ctx.strokeStyle = "var(--accent-gold)";
+                ctx.setLineDash([5, 5]);
+                ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.moveTo(crankMarkerX, 0); ctx.lineTo(crankMarkerX, h); ctx.stroke();
+                ctx.setLineDash([]); // Reset
+                ctx.fillStyle = "var(--accent-gold)";
+                ctx.font = "bold 9px sans-serif";
+                ctx.fillText("CRANK START RAMP", crankMarkerX + 6, 25);
+            }
+
+            // Draw active variable lines
+            TELEMETRY_LAYOUT.forEach(v => {
+                if (!v.active) return;
+
+                let minVal = Infinity;
+                let maxVal = -Infinity;
+
+                activeSlice.forEach(d => {
+                    const val = d[v.name];
+                    if (val < minVal) minVal = val;
+                    if (val > maxVal) maxVal = val;
+                });
+
+                // Compute scaling limits
+                let plotMin, plotMax;
+                if (v.autoScale !== false) {
+                    const range = maxVal - minVal;
+                    plotMin = minVal - range * 0.05;
+                    plotMax = maxVal + range * 0.05;
+                    if (Math.abs(range) < 0.001) {
+                        plotMin -= 1;
+                        plotMax += 1;
+                    }
+                } else {
+                    plotMin = v.manualMin;
+                    plotMax = v.manualMax;
+                }
+
+                // Plot Line Path
+                ctx.beginPath();
+                ctx.strokeStyle = v.color;
+                ctx.lineWidth = 2;
+
+                activeSlice.forEach((d, idx) => {
+                    const x = (idx / (activeSlice.length - 1)) * w;
+                    const y = h - ((d[v.name] - plotMin) / (plotMax - plotMin)) * h;
+                    if (idx === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+            });
+
+            // Draw vertical scrubbing line
+            const slider = document.getElementById('time-slider-analysis');
+            const sliderVal = parseInt(slider.value) || 0;
+            const cursorX = (sliderVal / totalRange) * w;
+
+            ctx.strokeStyle = "var(--accent-blue)";
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(cursorX, 0); ctx.lineTo(cursorX, h); ctx.stroke();
+
+            // Update mirrored inspector fields
+            const selectedSample = activeSlice[sliderVal];
+            if (selectedSample) {
+                updateInspector(selectedSample);
+                document.getElementById('active-packet-val-analysis').innerText = selectedSample.packet_id;
+            }
+        }
+
+        // Computes and prints the start analysis phase report
+        function calculateCrankingStats(ev) {
+            const entireLog = telemetryData;
+            
+            // 1. Isolate Phase Bins
+            const preCrankSlice = entireLog.slice(ev.startIndex, ev.crankingStartIndex);
+            const crankingSlice = entireLog.slice(ev.crankingStartIndex, ev.endIndex);
+
+            // Compute Battery Rest Voltage (V_rest)
+            let v_rest = 14.2; // default safe fallback
+            if (preCrankSlice.length > 0) {
+                const vbus_sum = preCrankSlice.reduce((sum, d) => sum + d.vbus_avg, 0);
+                v_rest = vbus_sum / preCrankSlice.length;
+            } else {
+                v_rest = entireLog[ev.startIndex].vbus_avg;
+            }
+
+            // 2. Perform Stats Aggregation over Crank Window (State 4)
+            let samples = crankingSlice.length;
+            let duration_ms = samples * 20; // 50 Hz = 20ms steps
+
+            let max_error = 0;
+            let error_sum = 0;
+            let peak_iq = 0;
+            let iq_sum = 0;
+            let peak_iterm = 0;
+            let min_vbus = Infinity;
+            let max_duty = 0;
+
+            let peak_torque = 0;
+            let torque_sum = 0;
+            let peak_t_mag = 0;
+            let peak_t_rel = 0;
+            let peak_power = 0;
+            let mech_power_sum = 0;
+            let elec_power_sum = 0;
+
+            let r_sys_sum = 0;
+            let r_sys_count = 0;
+
+            crankingSlice.forEach(d => {
+                // Tracking Speed Errors
+                const error = d.speed_target - d.rpm;
+                const abs_error = Math.abs(error);
+                if (abs_error > max_error) max_error = abs_error;
+                error_sum += abs_error;
+
+                // Stator Active Currents
+                const abs_iq = Math.abs(d.iq_avg);
+                if (abs_iq > peak_iq) peak_iq = abs_iq;
+                iq_sum += abs_iq;
+
+                // Integrator wind-up & duty constraints
+                if (Math.abs(d.speed_i_term) > peak_iterm) peak_iterm = Math.abs(d.speed_i_term);
+                if (d.vbus_min < min_vbus) min_vbus = d.vbus_min;
+                if (d.duty_max > max_duty) max_duty = d.duty_max;
+
+                // Electromechanical variables (Derived "On-Arrival")
+                if (Math.abs(d.t_total) > peak_torque) peak_torque = Math.abs(d.t_total);
+                torque_sum += d.t_total;
+
+                if (Math.abs(d.t_mag) > peak_t_mag) peak_t_mag = Math.abs(d.t_mag);
+                if (Math.abs(d.t_rel) > peak_t_rel) peak_t_rel = Math.abs(d.t_rel);
+
+                if (d.power_mech > peak_power) peak_power = d.power_mech;
+                mech_power_sum += Math.max(0, d.power_mech);
+                elec_power_sum += Math.max(0, d.power_elec_total);
+
+                // Cabling Resistance calculation (only evaluate during high-current crank sags > 15A)
+                if (d.i_bus > 15.0 && d.vbus_avg < v_rest) {
+                    const r_sys = (v_rest - d.vbus_avg) / d.i_bus;
+                    r_sys_sum += r_sys;
+                    r_sys_count++;
+                }
+            });
+
+            // Prevent divide by zeros on empty slices
+            const avg_error = samples > 0 ? (error_sum / samples) : 0;
+            const avg_iq = samples > 0 ? (iq_sum / samples) : 0;
+            const avg_torque = samples > 0 ? (torque_sum / samples) : 0;
+            const avg_power_mech = samples > 0 ? (mech_power_sum / samples) : 0;
+            const avg_power_elec = samples > 0 ? (elec_power_sum / samples) : 0;
+            const system_efficiency = avg_power_elec > 0 ? (avg_power_mech / avg_power_elec) * 100.0 : 0.0;
+            const avg_r_sys = r_sys_count > 0 ? (r_sys_sum / r_sys_count) : 0;
+
+            // Step 3: Compile Warnings/Notes based on physical thresholds
+            let alerts = [];
+            if (avg_r_sys > 0.025) {
+                alerts.push(`⚠️ CABLING BOTTLENECK: High cabling resistance detected (${(avg_r_sys * 1000).toFixed(1)} mΩ). Inspect physical starter cables and battery terminal contactors!`);
+            }
+            if (max_error > 500 && samples > 0) {
+                alerts.push(`⚠️ SPEED RAMP LAG: Speed tracking error exceeded 500 ERPM. Consider raising 'max iq current limit' or slowing down your Speed PID ramp rate!`);
+            }
+            if (max_duty > 0.88) {
+                alerts.push(`⚠️ VOLTAGE HEADROOM CLIPPED: FOC duty saturated to ${max_duty.toFixed(2)}. Inverter lacks voltage headroom to push the demanded starting current. Check battery SOC!`);
+            }
+            if (peak_iterm > (peak_iq * 0.9) && samples > 0) {
+                alerts.push(`⚠️ INTEGRAL WIND-UP: Speed PID Integrator reached ${peak_iterm.toFixed(1)}A. If speed overshoots on engine fire, clamp your integral saturation bounds!`);
+            }
+            if (alerts.length === 0) {
+                alerts.push(`✅ CRANKING SUCCESSFUL: All physical limits, speeds, and cabling resistances are within nominal safe parameters.`);
+            }
+
+            // Step 4: Write report text
+            const display = document.getElementById('analysis-report-display');
+            display.innerHTML = `
+============================================================
+           CRANKING START REPORT (EVENT #${ev.id})
+============================================================
+TIME CAPTURED:      ${ev.timestamp}
+CRANKING DURATION:  ${(duration_ms / 1000).toFixed(2)} seconds (${samples} samples)
+BATTERY OPEN-VOLT:  ${v_rest.toFixed(2)} V
+
+--- POWER DISTRIBUTION & LOSS ANALYSIS ---
+BATTERY MIN VOLT:   ${min_vbus.toFixed(2)} V (Sag: ${(v_rest - min_vbus).toFixed(2)}V)
+AVG CABLING RES:    ${(avg_r_sys * 1000).toFixed(1)} mΩ (Calculated over ${r_sys_count} high-amp frames)
+PEAK MECHANICAL:    ${peak_power.toFixed(0)} W (${(peak_power / 745.7).toFixed(2)} hp developed)
+AVG ELECT. INPUT:   ${avg_power_elec.toFixed(0)} W
+AVG MECH. OUTPUT:   ${avg_power_mech.toFixed(0)} W
+SYSTEM EFFICIENCY:  ${system_efficiency.toFixed(1)} %
+
+--- ELECTROMECHANICAL FORCE SPLITS ---
+PEAK JOINT TORQUE:  ${peak_torque.toFixed(1)} Nm
+AVG JOINT TORQUE:   ${avg_torque.toFixed(1)} Nm
+PEAK MAG FORCE:     ${peak_t_mag.toFixed(1)} Nm (Rotor magnet interaction)
+PEAK REL FORCE:     ${peak_t_rel.toFixed(1)} Nm (Claw-pole saliency interaction)
+
+--- CLOSED-LOOP SPEED TUNING ANALYSIS ---
+TARGET CRANK SPEED: ${CONFIG.target_erpm} ERPM
+PEAK STATOR IQ:     ${peak_iq.toFixed(1)} A (Avg: ${avg_iq.toFixed(1)}A)
+MAX SPEED ERROR:    ${max_error.toFixed(0)} ERPM (Avg Lag: ${avg_error.toFixed(0)} ERPM)
+PEAK PID I-TERM:    ${peak_iterm.toFixed(1)} A
+
+--- SYSTEM ALERT MESSAGES ---
+${alerts.join("\n")}
+============================================================
+            `;
+        }
+
+        // Connect the "Perform Start Analysis" scanning trigger
+        document.getElementById('btn-perform-analysis').addEventListener('click', performStartAnalysis);
+
+        // Connect the start dropdown selector to update views
+        document.getElementById('select-analysis-event').addEventListener('change', (e) => {
+            const eventIndex = parseInt(e.target.value);
+            if (!isNaN(eventIndex)) {
+                loadAnalysisEvent(eventIndex);
+            }
+        });
+
+        // Track scrubber movements on the isolated Cranking Timeline
+        const analysisSlider = document.getElementById('time-slider-analysis');
+        
+        analysisSlider.addEventListener('input', () => {
+            if (selectedEventIndex === -1 || detectedEvents.length === 0) return;
+            
+            const ev = detectedEvents[selectedEventIndex];
+            const activeSlice = telemetryData.slice(ev.startIndex, ev.endIndex + 1);
+            const sliderVal = parseInt(analysisSlider.value) || 0;
+            
+            const currentSample = activeSlice[sliderVal];
+            if (currentSample) {
+                // Instantly update the sidebar inspector values
+                updateInspector(currentSample);
+                document.getElementById('active-packet-val-analysis').innerText = currentSample.packet_id;
+            }
+            
+            requestAnimationFrame(drawAnalysisPlots); // Slide the vertical blue line in real-time
+        });
+
         (function applyDynamicVersion() {
             // Update browser tab/window title
             document.title = `WRSM Diagnostics Workstation v${APP_VERSION}`;
@@ -1805,6 +2218,7 @@
                 mainHeader.innerText = `WRSM Diagnostics Workstation v${APP_VERSION}`;
             }
         })();
+
     </script>
 </body>
 </html>
