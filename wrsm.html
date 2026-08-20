@@ -573,6 +573,16 @@
             
             <!-- Analysis Playback Controls -->
             <div class="playback-control-bar">
+                <div class="window-selector">
+                    <label>Window:</label>
+                    <select id="window-size-analysis">
+                        <option value="50">1s (50p)</option>
+                        <option value="150">3s (150p)</option>
+                        <option value="250">5s (250p)</option>
+                        <option value="500">10s (500p)</option>
+                        <option value="all" selected>All Event Data</option>
+                    </select>
+                </div>
                 <div class="slider-container">
                     <span id="slider-min-analysis">0</span>
                     <input type="range" id="time-slider-analysis" min="0" max="0" value="0" disabled>
@@ -670,7 +680,7 @@
     </div>
 
     <script>
-        const APP_VERSION = "0.12";
+        const APP_VERSION = "0.13";
         // --- CONFIGURATION & TELEMETRY DEFINITION ---
         const PACKET_SIZE = 101;
         const NBR_FLOATS = 23;
@@ -2031,20 +2041,51 @@
             }
 
             const ev = detectedEvents[selectedEventIndex];
-            const activeSlice = telemetryData.slice(ev.startIndex, ev.endIndex + 1);
+            const slider = document.getElementById('time-slider-analysis');
+            const sliderVal = parseInt(slider.value) || 0;
+            const cursorIdx = ev.startIndex + sliderVal; // Live cursor index in telemetry array
+
+            // Extract and validate dynamic window width constraints
+            const maxPointsVal = document.getElementById('window-size-analysis').value;
+            let winStart, winEnd;
+
+            if (maxPointsVal === "all") {
+                winStart = ev.startIndex;
+                winEnd = ev.endIndex;
+            } else {
+                const W = parseInt(maxPointsVal);
+                const halfW = Math.floor(W / 2);
+                winStart = cursorIdx - halfW;
+                winEnd = winStart + W - 1;
+
+                // Clamp window bounds to keep them strictly inside the isolated start boundaries
+                if (winStart < ev.startIndex) {
+                    winStart = ev.startIndex;
+                    winEnd = Math.min(ev.endIndex, winStart + W - 1);
+                }
+                if (winEnd > ev.endIndex) {
+                    winEnd = ev.endIndex;
+                    winStart = Math.max(ev.startIndex, winEnd - W + 1);
+                }
+            }
+
+            // Update Timeline slider labels to reflect the current absolute visible window
+            document.getElementById('slider-min-analysis').innerText = `Pt:${winStart}`;
+            document.getElementById('slider-max-analysis').innerText = `Pt:${winEnd}`;
+
+            const activeSlice = telemetryData.slice(winStart, winEnd + 1);
             if (activeSlice.length <= 1) return;
 
-            // Draw Phase Marker Dividers
-            const totalRange = ev.endIndex - ev.startIndex;
-            
-            // Mark Pre-Excitation Transition (if within the slice)
-            if (ev.crankingStartIndex > ev.startIndex) {
-                const crankMarkerX = ((ev.crankingStartIndex - ev.startIndex) / totalRange) * w;
+            const visibleRange = winEnd - winStart;
+
+            // Draw Phase Marker Dividers (Only if they are inside the active visible zoom window!)
+            if (ev.crankingStartIndex > winStart && ev.crankingStartIndex < winEnd) {
+                const crankMarkerX = ((ev.crankingStartIndex - winStart) / visibleRange) * w;
                 ctx.strokeStyle = "var(--accent-gold)";
-                ctx.setLineDash([5, 5]);
+                ctx.setLineDash([]);
                 ctx.lineWidth = 1.5;
                 ctx.beginPath(); ctx.moveTo(crankMarkerX, 0); ctx.lineTo(crankMarkerX, h); ctx.stroke();
-                ctx.setLineDash([]); // Reset
+                
                 ctx.fillStyle = "var(--accent-gold)";
                 ctx.font = "bold 9px sans-serif";
                 ctx.fillText("CRANK START RAMP", crankMarkerX + 6, 25);
@@ -2057,19 +2098,12 @@
                 let minVal = Infinity;
                 let maxVal = -Infinity;
 
+                // Scale variables to the visible window to maximize visual resolution!
                 activeSlice.forEach(d => {
                     const val = d[v.name];
                     if (val < minVal) minVal = val;
                     if (val > maxVal) maxVal = val;
                 });
-
-                // Update visible scale labels inside the Sidebar cards (Analysis tab)
-                const sliceMinEl = document.getElementById(`analysis-scale-slice-min-${v.name}`);
-                const sliceMaxEl = document.getElementById(`analysis-scale-slice-max-${v.name}`);
-                if (sliceMinEl && sliceMaxEl) {
-                    sliceMinEl.innerText = minVal !== Infinity ? minVal.toFixed(1) : "-";
-                    sliceMaxEl.innerText = maxVal !== Infinity ? maxVal.toFixed(1) : "-";
-                }
 
                 // Compute scaling limits
                 let plotMin, plotMax;
@@ -2086,6 +2120,14 @@
                     plotMax = v.manualMax;
                 }
 
+                // Update scale card labels on the side
+                const sliceMinEl = document.getElementById(`analysis-scale-slice-min-${v.name}`);
+                const sliceMaxEl = document.getElementById(`analysis-scale-slice-max-${v.name}`);
+                if (sliceMinEl && sliceMaxEl) {
+                    sliceMinEl.innerText = minVal !== Infinity ? minVal.toFixed(1) : "-";
+                    sliceMaxEl.innerText = maxVal !== Infinity ? maxVal.toFixed(1) : "-";
+                }
+
                 // Plot Line Path
                 ctx.beginPath();
                 ctx.strokeStyle = v.color;
@@ -2100,17 +2142,15 @@
                 ctx.stroke();
             });
 
-            // Draw vertical scrubbing line
-            const slider = document.getElementById('time-slider-analysis');
-            const sliderVal = parseInt(slider.value) || 0;
-            const cursorX = (sliderVal / totalRange) * w;
+            // Draw vertical scrubbing line relative to the current window starting point
+            const cursorX = ((cursorIdx - winStart) / visibleRange) * w;
 
             ctx.strokeStyle = "var(--accent-blue)";
             ctx.lineWidth = 1;
             ctx.beginPath(); ctx.moveTo(cursorX, 0); ctx.lineTo(cursorX, h); ctx.stroke();
 
             // Update mirrored inspector fields
-            const selectedSample = activeSlice[sliderVal];
+            const selectedSample = telemetryData[cursorIdx];
             if (selectedSample) {
                 updateInspector(selectedSample);
                 document.getElementById('active-packet-val-analysis').innerText = selectedSample.packet_id;
@@ -2292,32 +2332,65 @@ ${alerts.join("\n")}
         analysisCanvas.addEventListener('mousemove', (e) => {
             if (selectedEventIndex === -1 || detectedEvents.length === 0) return;
             const ev = detectedEvents[selectedEventIndex];
-            const totalPoints = ev.endIndex - ev.startIndex;
-            if (totalPoints <= 0) return;
 
             const rect = analysisCanvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const hoverPct = x / analysisCanvas.width;
-            let sliderVal = Math.round(hoverPct * totalPoints);
-            sliderVal = Math.max(0, Math.min(totalPoints, sliderVal));
 
-            // Snap the scrubber input slider to match hover cursor position
+            // Recalculate active visible bounds exactly as in drawAnalysisPlots
             const slider = document.getElementById('time-slider-analysis');
-            slider.value = sliderVal;
+            const sliderVal = parseInt(slider.value) || 0;
+            const cursorIdx = ev.startIndex + sliderVal;
 
-            const activeSlice = telemetryData.slice(ev.startIndex, ev.endIndex + 1);
-            const currentSample = activeSlice[sliderVal];
-            if (currentSample) {
-                updateInspector(currentSample); // Dynamic class-based cards update!
-                document.getElementById('active-packet-val-analysis').innerText = currentSample.packet_id;
-                updateInspectingStatus(`[Inspecting Start Pt: ${ev.startIndex + sliderVal}]`, "var(--accent-gold)");
+            const maxPointsVal = document.getElementById('window-size-analysis').value;
+            let winStart, winEnd;
+
+            if (maxPointsVal === "all") {
+                winStart = ev.startIndex;
+                winEnd = ev.endIndex;
+            } else {
+                const W = parseInt(maxPointsVal);
+                const halfW = Math.floor(W / 2);
+                winStart = cursorIdx - halfW;
+                winEnd = winStart + W - 1;
+
+                if (winStart < ev.startIndex) {
+                    winStart = ev.startIndex;
+                    winEnd = Math.min(ev.endIndex, winStart + W - 1);
+                }
+                if (winEnd > ev.endIndex) {
+                    winEnd = ev.endIndex;
+                    winStart = Math.max(ev.startIndex, winEnd - W + 1);
+                }
             }
 
-            requestAnimationFrame(drawAnalysisPlots); // Slides the gold vertical cursor line in real-time
+            const visibleRange = winEnd - winStart;
+            if (visibleRange <= 0) return;
+
+            // Map hover percentage to the points inside our active visible zoom slice
+            let hoverIdx = Math.round(hoverPct * visibleRange) + winStart;
+            hoverIdx = Math.max(winStart, Math.min(winEnd, hoverIdx));
+            
+            const targetSliderVal = hoverIdx - ev.startIndex;
+            slider.value = targetSliderVal;
+
+            const currentSample = telemetryData[hoverIdx];
+            if (currentSample) {
+                updateInspector(currentSample);
+                document.getElementById('active-packet-val-analysis').innerText = currentSample.packet_id;
+                updateInspectingStatus(`[Inspecting Start Pt: ${hoverIdx}]`, "var(--accent-gold)");
+            }
+
+            requestAnimationFrame(drawAnalysisPlots);
         });
 
         analysisCanvas.addEventListener('mouseleave', () => {
             updateInspectingStatus("[Event View]", "var(--accent-blue)");
+            requestAnimationFrame(drawAnalysisPlots);
+        });
+
+        // Trigger redraw on window width change
+        document.getElementById('window-size-analysis').addEventListener('change', () => {
             requestAnimationFrame(drawAnalysisPlots);
         });
 
