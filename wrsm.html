@@ -3,14 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WRSM Telemetry & Tuning Workstation</title>
+    <title>WRSM Diagnostics Workstation v2.0</title>
     <style>
         :root {
             --bg-primary: #0f172a;
             --bg-secondary: #1e293b;
+            --bg-tertiary: #0b0f19;
             --accent-blue: #3b82f6;
             --accent-green: #10b981;
             --accent-red: #ef4444;
+            --accent-gold: #f59e0b;
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
             --border-color: #334155;
@@ -21,7 +23,7 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-primary);
             color: var(--text-main);
-            padding: 20px;
+            padding: 15px;
             height: 100vh;
             display: flex;
             flex-direction: column;
@@ -32,61 +34,65 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding-bottom: 15px;
+            padding-bottom: 10px;
             border-bottom: 1px solid var(--border-color);
         }
 
-        h1 { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
-        .tagline { font-size: 0.85rem; color: var(--text-muted); }
+        h1 { font-size: 1.35rem; font-weight: 700; color: var(--text-main); }
+        .tagline { font-size: 0.8rem; color: var(--text-muted); }
 
         .dashboard {
             display: grid;
-            grid-template-columns: 320px 1fr;
-            grid-template-rows: 1fr 250px;
-            gap: 15px;
+            grid-template-columns: 350px 1fr;
+            grid-template-rows: 1fr 200px;
+            gap: 12px;
             flex-grow: 1;
-            margin-top: 15px;
+            margin-top: 12px;
             min-height: 0;
         }
 
-        /* Sidebar / Control Card styles */
+        /* Sidebar styles */
         .sidebar {
             grid-row: 1 / span 2;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 12px;
             overflow-y: auto;
+            min-height: 0;
         }
 
         .card {
             background-color: var(--bg-secondary);
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 15px;
+            padding: 12px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
         }
 
         .card-title {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             color: var(--text-muted);
             border-bottom: 1px solid var(--border-color);
-            padding-bottom: 6px;
+            padding-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        label { font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 4px; }
+        label { font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 2px; }
         select, input, button {
             width: 100%;
-            padding: 8px 12px;
+            padding: 6px 10px;
             background-color: var(--bg-primary);
             border: 1px solid var(--border-color);
             color: var(--text-main);
             border-radius: 4px;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             outline: none;
         }
 
@@ -100,20 +106,33 @@
         button:hover { opacity: 0.9; }
         button.disconnect { background-color: var(--accent-red); }
 
-        /* Stats Grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-        }
-        .stat-box {
+        /* Physics Inspector Panel Styles */
+        .inspector-section {
             background-color: var(--bg-primary);
+            border-radius: 6px;
             padding: 8px;
-            border-radius: 4px;
             border: 1px solid var(--border-color);
-            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
-        .stat-val { font-size: 1.1rem; font-weight: 700; font-family: monospace; }
+        .inspector-title {
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: var(--accent-blue);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            border-bottom: 1px dashed var(--border-color);
+            padding-bottom: 2px;
+        }
+        .inspector-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.78rem;
+            font-family: monospace;
+        }
+        .inspector-label { color: var(--text-muted); }
+        .inspector-val { font-weight: bold; color: var(--text-main); }
 
         /* Canvas Plotter Area */
         .plot-container {
@@ -122,10 +141,9 @@
             background-color: var(--bg-secondary);
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 15px;
+            padding: 12px;
             display: flex;
             flex-direction: column;
-            position: relative;
             min-height: 0;
         }
 
@@ -133,7 +151,7 @@
             flex-grow: 1;
             position: relative;
             width: 100%;
-            min-height: 0; /* Crucial: allows flex child to shrink */
+            min-height: 0;
         }
 
         canvas {
@@ -143,33 +161,91 @@
             width: 100%;
             height: 100%;
             display: block;
-            background-color: #0b0f19;
+            background-color: var(--bg-tertiary);
             border-radius: 4px;
             border: 1px solid var(--border-color);
+            cursor: crosshair;
+        }
+
+        /* Playback & Scrollbar Controls */
+        .playback-control-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 6px 12px;
+            margin-top: 10px;
+            font-size: 0.8rem;
+        }
+
+        .live-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .live-toggle input { width: auto; cursor: pointer; }
+
+        .window-selector {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .window-selector select { width: 100px; padding: 4px; }
+
+        .slider-container {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: monospace;
+            font-size: 0.75rem;
+        }
+        .slider-container input[type="range"] {
+            flex-grow: 1;
+            padding: 0;
+            cursor: pointer;
+        }
+
+        .active-packet-indicator {
+            font-family: monospace;
+            font-size: 0.75rem;
+            background-color: var(--bg-secondary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            white-space: nowrap;
         }
 
         /* Var Toggles */
         .plot-selectors {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 8px;
             margin-top: 10px;
-            max-height: 80px;
+            max-height: 75px;
             overflow-y: auto;
             padding: 5px;
             background: var(--bg-primary);
             border-radius: 4px;
+            border: 1px solid var(--border-color);
         }
         .selector-tag {
             display: flex;
             align-items: center;
-            gap: 5px;
-            font-size: 0.75rem;
+            gap: 4px;
+            font-size: 0.7rem;
             background: var(--bg-secondary);
-            padding: 4px 8px;
+            padding: 3px 6px;
             border-radius: 12px;
             border: 1px solid var(--border-color);
             cursor: pointer;
+            white-space: nowrap;
         }
         .selector-tag input { width: auto; cursor: pointer; }
 
@@ -180,10 +256,10 @@
             background-color: var(--bg-secondary);
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 15px;
+            padding: 12px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
             min-height: 0;
         }
 
@@ -191,8 +267,8 @@
             flex-grow: 1;
             background-color: #020617;
             font-family: "Courier New", Courier, monospace;
-            font-size: 0.85rem;
-            padding: 10px;
+            font-size: 0.8rem;
+            padding: 8px;
             border-radius: 4px;
             border: 1px solid var(--border-color);
             overflow-y: auto;
@@ -202,20 +278,20 @@
 
         .console-input-row {
             display: flex;
-            gap: 10px;
+            gap: 8px;
         }
         .console-input-row input { flex-grow: 1; }
-        .console-input-row button { width: auto; padding: 0 20px; }
+        .console-input-row button { width: auto; padding: 0 15px; }
     </style>
 </head>
 <body>
 
     <header>
         <div>
-            <h1>WRSM Diagnostics</h1>
-            <span class="tagline">50Hz IEEE-754 Compact Binary Telemetry Framework</span>
+            <h1>WRSM Diagnostics Workstation</h1>
+            <span class="tagline">Interactive Real-time Playback, Lookup & Derived Physics Analyzer</span>
         </div>
-        <div style="font-size: 0.85rem; color: var(--accent-green);" id="stream-indicator">● IDLE</div>
+        <div style="font-size: 0.8rem; color: var(--text-muted);" id="stream-indicator">● OFFLINE</div>
     </header>
 
     <div class="dashboard">
@@ -226,46 +302,109 @@
             <!-- Connection Card -->
             <div class="card">
                 <div class="card-title">Serial Connection</div>
-                <div>
-                    <label>Baud Rate</label>
-                    <select id="baudrate">
-                        <option value="115200" selected>115200 (Default VESC USB)</option>
-                        <option value="921600">921600 (High-Speed Serial)</option>
-                    </select>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div>
+                        <label>Baud Rate</label>
+                        <select id="baudrate">
+                            <option value="115200" selected>115200 (USB)</option>
+                            <option value="921600">921600 (High)</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; align-items: flex-end;">
+                        <button id="btn-connect" style="height: 30px;">Connect Port</button>
+                    </div>
                 </div>
-                <button id="btn-connect">Connect Port</button>
             </div>
 
-            <!-- Diagnostics Metrics -->
-            <div class="card">
-                <div class="card-title">Realtime Health</div>
-                <div class="stats-grid">
-                    <div class="stat-box">
-                        <label>Super State</label>
-                        <div id="val-state" class="stat-val" style="color: var(--accent-blue);">0</div>
+            <!-- Unified Physics & Lookup Inspector Card -->
+            <div class="card" style="flex-grow: 1; min-height: 0; overflow-y: auto;">
+                <div class="card-title">
+                    Physics Inspector
+                    <span id="inspecting-status" style="font-size: 0.7rem; color: var(--accent-gold); text-transform: none;">[Live]</span>
+                </div>
+                
+                <!-- Section: Live Status -->
+                <div class="inspector-section">
+                    <div class="inspector-title">System States</div>
+                    <div class="inspector-row">
+                        <span class="inspector-label">Packet ID:</span>
+                        <span id="insp-packet-id" class="inspector-val">-</span>
                     </div>
-                    <div class="stat-box">
-                        <label>Speed (ERPM)</label>
-                        <div id="val-rpm" class="stat-val">0</div>
+                    <div class="inspector-row">
+                        <span class="inspector-label">Super State:</span>
+                        <span id="insp-super-state" class="inspector-val" style="color: var(--accent-blue);">-</span>
                     </div>
-                    <div class="stat-box">
-                        <label>V_Bus Avg</label>
-                        <div id="val-vbus" class="stat-val">0.0V</div>
+                    <div class="inspector-row">
+                        <span class="inspector-label">MC State / Ctrl Mode:</span>
+                        <span id="insp-mc-ctrl" class="inspector-val">-</span>
                     </div>
-                    <div class="stat-box">
-                        <label>Packet Loss</label>
-                        <div id="val-loss" class="stat-val" style="color: var(--accent-green);">0.0%</div>
+                </div>
+
+                <!-- Section: Parametric Lookups -->
+                <div class="inspector-section">
+                    <div class="inspector-title" style="color: var(--accent-gold);">Rotor-Stator Lookups (If-driven)</div>
+                    <div class="inspector-row">
+                        <span class="inspector-label">Field Current If:</span>
+                        <span id="insp-if" class="inspector-val" style="color: var(--accent-gold);">-</span>
+                    </div>
+                    <div class="inspector-row">
+                        <span class="inspector-label">Flux Linkage (λ):</span>
+                        <span id="insp-lookup-flux" class="inspector-val">-</span>
+                    </div>
+                    <div class="inspector-row">
+                        <span class="inspector-label">Inductance Ld / Lq:</span>
+                        <span id="insp-lookup-ldlq" class="inspector-val">-</span>
+                    </div>
+                    <div class="inspector-row">
+                        <span class="inspector-label">Saliency (Lq - Ld):</span>
+                        <span id="insp-lookup-saliency" class="inspector-val">-</span>
+                    </div>
+                </div>
+
+                <!-- Section: Derived Electromechanicals -->
+                <div class="inspector-section">
+                    <div class="inspector-title" style="color: var(--accent-green);">Derived Parameters</div>
+                    <div class="inspector-row">
+                        <span class="inspector-label">Mag / Rel Torque:</span>
+                        <span id="insp-torque-split" class="inspector-val">-</span>
+                    </div>
+                    <div class="inspector-row">
+                        <span class="inspector-label">Total Joint Torque:</span>
+                        <span id="insp-torque-total" class="inspector-val" style="color: var(--accent-green);">-</span>
+                    </div>
+                    <div class="inspector-row">
+                        <span class="inspector-label">Mech Output Power:</span>
+                        <span id="insp-power-mech" class="inspector-val" style="color: var(--accent-green);">-</span>
+                    </div>
+                    <div class="inspector-row">
+                        <span class="inspector-label">Stator Power (Est):</span>
+                        <span id="insp-power-stator" class="inspector-val">-</span>
+                    </div>
+                    <div class="inspector-row">
+                        <span class="inspector-label">Rotor Copper Loss (If²R):</span>
+                        <span id="insp-power-rotor" class="inspector-val" style="color: var(--accent-red);">-</span>
+                    </div>
+                    <div class="inspector-row">
+                        <span class="inspector-label">Total Elec Input:</span>
+                        <span id="insp-power-elec-total" class="inspector-val">-</span>
+                    </div>
+                    <div class="inspector-row">
+                        <span class="inspector-label">System Efficiency:</span>
+                        <span id="insp-efficiency" class="inspector-val" style="color: #a855f7; font-size: 0.85rem;">-</span>
                     </div>
                 </div>
             </div>
 
             <!-- File Storage -->
             <div class="card">
-                <div class="card-title">File Operations</div>
-                <button id="btn-save" style="background-color: var(--accent-green);">Export CSV Log</button>
-                <div style="margin-top: 10px;">
-                    <label>Load Log File</label>
-                    <input type="file" id="file-load" accept=".json,.csv">
+                <div class="card-title">File & Test Operations</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <button id="btn-save" style="background-color: var(--accent-green); font-size: 0.75rem;">Export CSV</button>
+                    <button id="btn-simulate" style="background-color: var(--accent-gold); font-size: 0.75rem;">Simulate Run</button>
+                </div>
+                <div>
+                    <label>Load Diagnostic Log</label>
+                    <input type="file" id="file-load" accept=".csv">
                 </div>
             </div>
 
@@ -273,12 +412,46 @@
 
         <!-- CANVAS PLOTTER -->
         <div class="plot-container">
-            <div class="card-title" style="margin-bottom: 10px;">High-Fidelity Telemetry Canvas</div>
+            <div class="card-title" style="margin-bottom: 8px;">
+                High-Fidelity Telemetry Canvas
+                <span id="inspect-hint" style="font-size: 0.7rem; color: var(--text-muted); text-transform: none;">Hover canvas to inspect values</span>
+            </div>
+            
             <div class="canvas-wrapper">
                 <canvas id="telemetryCanvas"></canvas>
             </div>
+            
+            <!-- PLAYBACK CONTROL BAR -->
+            <div class="playback-control-bar">
+                <label class="live-toggle">
+                    <input type="checkbox" id="live-follow" checked> Live
+                </label>
+                
+                <div class="window-selector">
+                    <label>Window:</label>
+                    <select id="window-size">
+                        <option value="50">1s (50p)</option>
+                        <option value="250">5s (250p)</option>
+                        <option value="750">15s (750p)</option>
+                        <option value="1500" selected>30s (1500p)</option>
+                        <option value="3000">60s (3000p)</option>
+                        <option value="all">All Data</option>
+                    </select>
+                </div>
+
+                <div class="slider-container">
+                    <span id="slider-min">0</span>
+                    <input type="range" id="time-slider" min="0" max="0" value="0" disabled>
+                    <span id="slider-max">0</span>
+                </div>
+
+                <div class="active-packet-indicator">
+                    Selected Packet: <span id="active-packet-val">-</span>
+                </div>
+            </div>
+            
             <div class="plot-selectors" id="plot-selectors-container">
-                <!-- Variables will be dynamically injected here with color markers -->
+                <!-- Variables dynamically injected here -->
             </div>
         </div>
 
@@ -298,8 +471,48 @@
         // --- 1. CONFIGURATION & TELEMETRY DEFINITION ---
         const PACKET_SIZE = 89;
         const START_MARKER = 0xAA;
+        const FIELD_R_OHMS = 5.60; // Standard Wound Rotor Field Resistance at 22C
+        const POLE_PAIRS = 8.0;     // 16-pole motor (8 PP)
 
-        // Strict ordering matches the compiler alignment definition inside wrsm_supervisor.c
+        // Piecewise lookup table from classicp hardware file
+        const MGU_IF_TABLE = [
+            {
+                lower_bound_if: 2.92,
+                base_flux: 0.01320000, base_ld: 0.0000140900, base_lq: 0.0000243500, base_l: 0.0000192200, base_ld_lq_diff: 0.0000102600,
+                base_inv_ld: 70972.3203125, base_inv_lq: 41067.7617188,
+                slope_flux: 0.00000001, slope_ld: 0.0, slope_lq: 0.0, slope_l: 0.0, slope_ld_lq_diff: 0.0,
+                slope_inv_ld: 0.0, slope_inv_lq: 0.0
+            },
+            {
+                lower_bound_if: 2.00,
+                base_flux: 0.01241000, base_ld: 0.0000160900, base_lq: 0.0000281500, base_l: 0.0000221200, base_ld_lq_diff: 0.0000120600,
+                base_inv_ld: 62150.4023438, base_inv_lq: 35523.9765625,
+                slope_flux: 0.00085870, slope_ld: -0.0000021739, slope_lq: -0.0000041304, slope_l: -0.0000031522, slope_ld_lq_diff: -0.0000019565,
+                slope_inv_ld: 9589.0410156, slope_inv_lq: 6025.8535156
+            },
+            {
+                lower_bound_if: 1.00,
+                base_flux: 0.01008000, base_ld: 0.0000273400, base_lq: 0.0000431600, base_l: 0.0000352500, base_ld_lq_diff: 0.0000158200,
+                base_inv_ld: 36576.4453125, base_inv_lq: 23169.6015625,
+                slope_flux: 0.00233000, slope_ld: -0.0000112500, slope_lq: -0.0000150100, slope_l: -0.0000131300, slope_ld_lq_diff: -0.0000037600,
+                slope_inv_ld: 25573.9570312, slope_inv_lq: 12354.3750000
+            },
+            {
+                lower_bound_if: 0.50,
+                base_flux: 0.00680000, base_ld: 0.0000298550, base_lq: 0.0000461250, base_l: 0.0000379900, base_ld_lq_diff: 0.0000162700,
+                base_inv_ld: 33495.2265625, base_inv_lq: 21680.2167969,
+                slope_flux: 0.00656000, slope_ld: -0.0000050300, slope_lq: -0.0000059300, slope_l: -0.0000054800, slope_ld_lq_diff: -0.0000009000,
+                slope_inv_ld: 6162.4370117, slope_inv_lq: 2978.7695312
+            },
+            {
+                lower_bound_if: 0.00,
+                base_flux: 0.00308000, base_ld: 0.0000301300, base_lq: 0.0000460700, base_l: 0.0000381000, base_ld_lq_diff: 0.0000159400,
+                base_inv_ld: 33189.5117188, base_inv_lq: 21706.0996094,
+                slope_flux: 0.00744000, slope_ld: -0.0000005500, slope_lq: 0.0000001100, slope_l: -0.0000002200, slope_ld_lq_diff: 0.0000006600,
+                slope_inv_ld: 611.4300537, slope_inv_lq: -51.7656250
+            }
+        ];
+
         const TELEMETRY_LAYOUT = [
             { name: "rpm", label: "Speed (ERPM)", color: "#3b82f6", active: true },
             { name: "accel_avg", label: "Accel (Avg)", color: "#10b981", active: true },
@@ -326,16 +539,18 @@
         // --- 2. GLOBAL STATE ---
         let port = null;
         let reader = null;
-        let writer = null;
         let rxBuffer = new Uint8Array(0);
-        let telemetryData = [];  // Array storing all parsed packet samples
+        let telemetryData = [];  // Central historical database
         
-        // Sequence tracking
         let lastPacketId = null;
         let totalLostPackets = 0;
         let totalReceivedPackets = 0;
 
-        // UI Binding Cached Handles
+        let liveFollowMode = true;
+        let selectedIndex = null; // Mouse hover/scrub selection index
+        let mouseX = null;
+
+        // UI Handles
         const btnConnect = document.getElementById('btn-connect');
         const termInput = document.getElementById('terminal-input');
         const btnSend = document.getElementById('btn-send');
@@ -343,11 +558,319 @@
         const streamIndicator = document.getElementById('stream-indicator');
         const canvas = document.getElementById('telemetryCanvas');
         const ctx = canvas.getContext('2d');
+        const liveToggle = document.getElementById('live-follow');
+        const windowSelect = document.getElementById('window-size');
+        const timeSlider = document.getElementById('time-slider');
+        const sliderMinLabel = document.getElementById('slider-min');
+        const sliderMaxLabel = document.getElementById('slider-max');
+        const activePacketLabel = document.getElementById('active-packet-val');
 
-        // --- 3. UI GENERATION ---
+        // --- 3. DYNAMIC VALUE LOOKUPS & MATHEMATICAL DERIVATIONS ---
+        function wrsmLookup(ifVal) {
+            if (ifVal <= 0.0) ifVal = 0.0;
+            let targetRow = MGU_IF_TABLE.length - 1; // Floor row 4
+            for (let i = 0; i < MGU_IF_TABLE.length - 1; i++) {
+                if (MGU_IF_TABLE[i].lower_bound_if <= ifVal) {
+                    targetRow = i;
+                    break;
+                }
+            }
+            const row = MGU_IF_TABLE[targetRow];
+            let delta = ifVal - row.lower_bound_if;
+            if (delta < 0.0) delta = 0.0;
+
+            return {
+                flux: row.base_flux + (delta * row.slope_flux),
+                ld: (row.base_ld + (delta * row.slope_ld)) * 1e6, // uH
+                lq: (row.base_lq + (delta * row.slope_lq)) * 1e6, // uH
+                l: (row.base_l + (delta * row.slope_l)) * 1e6,     // uH
+                ld_lq_diff: (row.base_ld_lq_diff + (delta * row.slope_ld_lq_diff)) * 1e6 // uH
+            };
+        }
+
+        function calculatePhysics(d) {
+            const lookup = wrsmLookup(d.if_avg);
+            const flux_wb = lookup.flux;
+            const ldiff_h = lookup.ld_lq_diff * 1e-6; // convert back to Henrys
+            
+            // Torque components
+            const t_mag = 1.5 * POLE_PAIRS * flux_wb * d.iq_avg;
+            const t_rel = -1.5 * POLE_PAIRS * ldiff_h * d.id_avg * d.iq_avg;
+            const t_total = t_mag + t_rel;
+
+            // Mechanical Power: w = speed_pll / PP
+            const rpm_mech = d.rpm / POLE_PAIRS;
+            const omega_mech = rpm_mech * (2.0 * Math.PI / 60.0);
+            const power_mech = t_total * omega_mech;
+
+            // Electrical Power Losses & Inputs
+            const power_rotor = Math.pow(d.if_avg, 2) * FIELD_R_OHMS;
+            // First order FOC stator input power estimate (V_bus * I_bus) where I_bus = Iq * duty
+            const power_stator = d.vbus_avg * d.iq_avg * d.duty_avg;
+            const power_elec_total = power_stator + power_rotor;
+
+            // Bi-directional Efficiency Calculation
+            let efficiency = 0.0;
+            let operationMode = "STANDBY";
+
+            if (power_mech > 1.0) {
+                // Motoring (Cranking)
+                operationMode = "MOTORING";
+                efficiency = power_elec_total > 0 ? (power_mech / power_elec_total) * 100.0 : 0;
+            } else if (power_mech < -1.0) {
+                // Generating (Alternator Active)
+                operationMode = "GENERATING";
+                const net_generated = Math.abs(power_stator);
+                const mechanical_input = Math.abs(power_mech);
+                // Subtraction of rotor field power consumption from generated power
+                efficiency = mechanical_input > 0 ? ((net_generated - power_rotor) / mechanical_input) * 100.0 : 0;
+            }
+            if (efficiency < 0.0) efficiency = 0.0;
+            if (efficiency > 100.0) efficiency = 100.0;
+
+            return {
+                ...lookup,
+                t_mag,
+                t_rel,
+                t_total,
+                power_mech,
+                power_rotor,
+                power_stator,
+                power_elec_total,
+                efficiency,
+                operationMode
+            };
+        }
+
+        // --- 4. THE INTERACTIVE PLAYBACK TIMELINE CONTROL SYSTEM ---
+        function updateTimelineSliders() {
+            const count = telemetryData.length;
+            if (count === 0) {
+                timeSlider.max = 0;
+                timeSlider.value = 0;
+                timeSlider.disabled = true;
+                return;
+            }
+
+            timeSlider.max = count - 1;
+            
+            if (liveFollowMode) {
+                timeSlider.value = count - 1;
+                timeSlider.disabled = true;
+            } else {
+                timeSlider.disabled = false;
+            }
+
+            sliderMinLabel.innerText = "0";
+            sliderMaxLabel.innerText = count - 1;
+            
+            const activeIdx = getActiveIndex();
+            const activeSample = telemetryData[activeIdx];
+            activePacketLabel.innerText = activeSample ? activeSample.packet_id : "-";
+            updateInspector(activeSample);
+        }
+
+        function getActiveIndex() {
+            if (selectedIndex !== null) {
+                return selectedIndex;
+            }
+            return parseInt(timeSlider.value);
+        }
+
+        liveToggle.addEventListener('change', (e) => {
+            liveFollowMode = e.target.checked;
+            updateTimelineSliders();
+            requestAnimationFrame(drawPlots);
+        });
+
+        timeSlider.addEventListener('input', () => {
+            selectedIndex = null; // Clear hover lock if user drags timeline
+            updateTimelineSliders();
+            requestAnimationFrame(drawPlots);
+        });
+
+        windowSelect.addEventListener('change', () => {
+            requestAnimationFrame(drawPlots);
+        });
+
+        // --- 5. INTERACTIVE CANVAS HOVER INSPECTION ---
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            
+            const maxPoints = getWindowSizePoints();
+            const count = telemetryData.length;
+            if (count === 0) return;
+
+            let endIndex = liveFollowMode ? count : parseInt(timeSlider.value) + 1;
+            let startIndex = maxPoints === "all" ? 0 : Math.max(0, endIndex - parseInt(maxPoints));
+            let viewLength = endIndex - startIndex;
+
+            if (viewLength <= 0) return;
+
+            // Map mouseX directly to index in activeSlice
+            const hoverPct = mouseX / canvas.width;
+            let sliceIdx = Math.round(hoverPct * (viewLength - 1));
+            sliceIdx = Math.max(0, Math.min(viewLength - 1, sliceIdx));
+            
+            selectedIndex = startIndex + sliceIdx;
+            
+            document.getElementById('inspecting-status').innerText = `[Inspecting Pt: ${selectedIndex}]`;
+            document.getElementById('inspecting-status').style.color = "var(--accent-gold)";
+            
+            updateTimelineSliders();
+            requestAnimationFrame(drawPlots);
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            mouseX = null;
+            selectedIndex = null;
+            document.getElementById('inspecting-status').innerText = liveFollowMode ? "[Live]" : "[Paused]";
+            document.getElementById('inspecting-status').style.color = liveFollowMode ? "var(--accent-green)" : "var(--accent-blue)";
+            
+            updateTimelineSliders();
+            requestAnimationFrame(drawPlots);
+        });
+
+        function getWindowSizePoints() {
+            return windowSelect.value;
+        }
+
+        // --- 6. UNIFIED INSPECTOR VIEW UPDATE ---
+        function updateInspector(sample) {
+            if (!sample) return;
+
+            // Direct readings
+            document.getElementById('insp-packet-id').innerText = sample.packet_id;
+            document.getElementById('insp-super-state').innerText = `${getSuperStateName(sample.super_state)} (${sample.super_state})`;
+            document.getElementById('insp-mc-ctrl').innerText = `MC: ${getMCStateName(sample.mc_state)} | Ctrl: ${getCtrlModeName(sample.ctrl_mode)}`;
+            document.getElementById('insp-if').innerText = sample.if_avg.toFixed(2) + " A";
+
+            // Derived lookups & physics calculations
+            const phy = calculatePhysics(sample);
+            
+            document.getElementById('insp-lookup-flux').innerText = (phy.flux * 1000).toFixed(2) + " mWb";
+            document.getElementById('insp-lookup-ldlq').innerText = `Ld: ${phy.ld.toFixed(1)} uH | Lq: ${phy.lq.toFixed(1)} uH`;
+            document.getElementById('insp-lookup-saliency').innerText = phy.ld_lq_diff.toFixed(1) + " uH";
+
+            document.getElementById('insp-torque-split').innerText = `Mag: ${phy.t_mag.toFixed(1)} Nm | Rel: ${phy.t_rel.toFixed(1)} Nm`;
+            document.getElementById('insp-torque-total').innerText = phy.t_total.toFixed(1) + " Nm";
+            document.getElementById('insp-power-mech').innerText = phy.power_mech.toFixed(0) + " W";
+            document.getElementById('insp-power-stator').innerText = phy.power_stator.toFixed(0) + " W";
+            document.getElementById('insp-power-rotor').innerText = phy.power_rotor.toFixed(1) + " W";
+            document.getElementById('insp-power-elec-total').innerText = phy.power_elec_total.toFixed(0) + " W";
+            document.getElementById('insp-efficiency').innerText = `${phy.efficiency.toFixed(1)}% [${phy.operationMode}]`;
+        }
+
+        // --- Helper Translation Enums ---
+        function getSuperStateName(val) {
+            const states = ["OFF", "BOOT", "STOPPING", "PRE_EXCITE", "CRANKING", "ALTERNATOR", "STALL_CATCH", "FAULT", "ESTOP"];
+            return states[val] || "UNKNOWN";
+        }
+        function getMCStateName(val) {
+            const states = ["OFF", "DETECTING", "RUNNING", "FULL_BRAKE"];
+            return states[val] || "UNKNOWN";
+        }
+        function getCtrlModeName(val) {
+            const modes = ["DUTY", "SPEED", "CURRENT", "BRAKE", "POS", "HANDBRAKE", "OPENLOOP", "OPENLOOP_PH", "OPEN_DT", "OPEN_DT_PH", "NONE"];
+            return modes[val] || "UNKNOWN";
+        }
+
+        // --- 7. FAST 2D CANVAS SCROLLING PLOTTER ---
+        function drawPlots() {
+            if (telemetryData.length === 0) return;
+
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Draw grid lines
+            ctx.strokeStyle = "#1e293b";
+            ctx.lineWidth = 1;
+            for (let gridX = 0; gridX < w; gridX += w / 10) {
+                ctx.beginPath(); ctx.moveTo(gridX, 0); ctx.lineTo(gridX, h); ctx.stroke();
+            }
+            for (let gridY = 0; gridY < h; gridY += h / 6) {
+                ctx.beginPath(); ctx.moveTo(0, gridY); ctx.lineTo(w, gridY); ctx.stroke();
+            }
+
+            const maxPoints = getWindowSizePoints();
+            const count = telemetryData.length;
+            let endIndex = liveFollowMode ? count : parseInt(timeSlider.value) + 1;
+            let startIndex = maxPoints === "all" ? 0 : Math.max(0, endIndex - parseInt(maxPoints));
+            
+            const activeSlice = telemetryData.slice(startIndex, endIndex);
+            if (activeSlice.length <= 1) return;
+
+            TELEMETRY_LAYOUT.forEach(v => {
+                if (!v.active) return;
+
+                let minVal = Infinity;
+                let maxVal = -Infinity;
+
+                activeSlice.forEach(d => {
+                    const val = d[v.name];
+                    if (val < minVal) minVal = val;
+                    if (val > maxVal) maxVal = val;
+                });
+
+                // Scaling buffer
+                const range = maxVal - minVal;
+                minVal -= range * 0.05;
+                maxVal += range * 0.05;
+                if (Math.abs(range) < 0.001) {
+                    minVal -= 1;
+                    maxVal += 1;
+                }
+
+                // Plot line
+                ctx.beginPath();
+                ctx.strokeStyle = v.color;
+                ctx.lineWidth = 2;
+
+                activeSlice.forEach((d, idx) => {
+                    const x = (idx / (activeSlice.length - 1)) * w;
+                    const y = h - ((d[v.name] - minVal) / (maxVal - minVal)) * h;
+                    if (idx === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+
+                // Plot min/max values
+                ctx.fillStyle = v.color;
+                ctx.font = "10px sans-serif";
+                ctx.fillText(`${v.label} Range: [${minVal.toFixed(1)}, ${maxVal.toFixed(1)}]`, 10, 15 + TELEMETRY_LAYOUT.indexOf(v) * 12);
+            });
+
+            // Draw vertical hover/scrub cursor line if mouse is on canvas or paused
+            const activeIdx = getActiveIndex();
+            if (activeIdx >= startIndex && activeIdx < endIndex) {
+                const sliceIdx = activeIdx - startIndex;
+                const cursorX = (sliceIdx / (activeSlice.length - 1)) * w;
+                
+                ctx.strokeStyle = "var(--accent-gold)";
+                ctx.lineWidth = 1;
+                ctx.setLineDash([8]);
+                ctx.beginPath();
+                ctx.moveTo(cursorX, 0);
+                ctx.lineTo(cursorX, h);
+                ctx.stroke();
+                ctx.setLineDash([]); // Reset
+                
+                // Draw packet index box on cursor
+                ctx.fillStyle = "var(--accent-gold)";
+                ctx.font = "bold 9px monospace";
+                ctx.fillText(`Pt:${telemetryData[activeIdx].packet_id}`, cursorX + 4, h - 10);
+            }
+        }
+
+        // --- 8. UI TOGGLES GENERATION ---
         function initToggles() {
             const container = document.getElementById('plot-selectors-container');
-            TELEMETRY_LAYOUT.forEach((v, index) => {
+            TELEMETRY_LAYOUT.forEach((v) => {
                 const tag = document.createElement('label');
                 tag.className = "selector-tag";
                 tag.style.color = v.color;
@@ -357,6 +880,7 @@
                 checkbox.checked = v.active;
                 checkbox.addEventListener('change', (e) => {
                     v.active = e.target.checked;
+                    requestAnimationFrame(drawPlots);
                 });
 
                 tag.appendChild(checkbox);
@@ -366,13 +890,10 @@
         }
         initToggles();
 
-        // --- 4. SERIAL COMM ENGINE ---
+        // --- 9. HARNESS SERIAL CONNECTIONS ---
         btnConnect.addEventListener('click', async () => {
-            if (port) {
-                await disconnect();
-            } else {
-                await connect();
-            }
+            if (port) { await disconnect(); } 
+            else { await connect(); }
         });
 
         async function connect() {
@@ -385,31 +906,26 @@
                 btnConnect.className = "disconnect";
                 termInput.disabled = false;
                 btnSend.disabled = false;
-                consoleDisplay.innerText = "--- Console Connected. Streaming Active ---\n";
+                consoleDisplay.innerText = "--- Serial Connected. Streaming Idle. ---\n";
                 streamIndicator.innerText = "● ONLINE";
                 streamIndicator.style.color = "var(--accent-green)";
 
-                // Spawn the read loop
                 readLoop();
             } catch (err) {
-                consoleDisplay.innerText += `\nError connecting: ${err.message}\n`;
+                consoleDisplay.innerText += `\nConnection Error: ${err.message}\n`;
                 port = null;
             }
         }
 
         async function disconnect() {
-            if (reader) {
-                await reader.cancel();
-            }
-            if (port) {
-                await port.close();
-            }
+            if (reader) { await reader.cancel(); }
+            if (port) { await port.close(); }
             port = null;
             btnConnect.innerText = "Connect Port";
             btnConnect.className = "";
             termInput.disabled = true;
             btnSend.disabled = true;
-            streamIndicator.innerText = "● IDLE";
+            streamIndicator.innerText = "● OFFLINE";
             streamIndicator.style.color = "var(--text-muted)";
         }
 
@@ -421,7 +937,6 @@
                         const { value, done } = await reader.read();
                         if (done) break;
                         
-                        // Append newly arrived bytes directly to the circular stream buffer
                         let newBuf = new Uint8Array(rxBuffer.length + value.length);
                         newBuf.set(rxBuffer);
                         newBuf.set(value, rxBuffer.length);
@@ -430,81 +945,56 @@
                         processBuffer();
                     }
                 } catch (err) {
-                    consoleDisplay.innerText += `\nRead error: ${err.message}\n`;
+                    consoleDisplay.innerText += `\nRead Error: ${err.message}\n`;
                     break;
                 } finally {
-                    if (reader) {
-                        reader.releaseLock();
-                    }
+                    if (reader) reader.releaseLock();
                 }
             }
         }
 
-        // --- 5. THE BINARY DE-MULTIPLEXING PARSER ---
         function processBuffer() {
             let i = 0;
             while (i < rxBuffer.length) {
-                // Look for the 0xAA start byte
                 if (rxBuffer[i] === START_MARKER) {
-                    // Check if we have enough bytes remaining to verify the complete structural packet
                     if (i + PACKET_SIZE <= rxBuffer.length) {
                         const packetCandidate = rxBuffer.slice(i, i + PACKET_SIZE);
-                        
-                        // Validate XOR Checksum over first 88 bytes
                         let calcChecksum = 0;
                         for (let b = 0; b < PACKET_SIZE - 1; b++) {
                             calcChecksum ^= packetCandidate[b];
                         }
-                        const rcvChecksum = packetCandidate[PACKET_SIZE - 1];
-
-                        if (calcChecksum === rcvChecksum) {
-                            // Extract valid packed sample
+                        if (calcChecksum === packetCandidate[PACKET_SIZE - 1]) {
                             parseBinaryPacket(packetCandidate);
                             i += PACKET_SIZE;
                             continue;
                         }
                     } else {
-                        // Not enough data yet to read the packet, wait for next incoming chunk
                         break;
                     }
                 }
-
-                // If it isn't a valid binary packet, decode the byte as plain ASCII terminal logging
-                const charCode = rxBuffer[i];
-                const char = String.fromCharCode(charCode);
-                consoleDisplay.innerText += char;
-                
-                // Auto-scroll terminal console
+                consoleDisplay.innerText += String.fromCharCode(rxBuffer[i]);
                 consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
                 i++;
             }
-            
-            // Clean processed bytes out of the buffer
             rxBuffer = rxBuffer.slice(i);
         }
 
         function parseBinaryPacket(bytes) {
             const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-            
-            // Unpack 32-bit sequence ID
-            const packetId = view.getUint32(1, true); // true = Little Endian
+            const packetId = view.getUint32(1, true);
             const superState = view.getUint8(5);
             const mcState = view.getUint8(6);
             const ctrlMode = view.getUint8(7);
 
-            // Frame Drop Sequence Monitoring
             totalReceivedPackets++;
             if (lastPacketId !== null) {
-                const expectedId = (lastPacketId + 1) >>> 0; // unsigned 32-bit addition
+                const expectedId = (lastPacketId + 1) >>> 0;
                 if (packetId !== expectedId && packetId > expectedId) {
-                    const dropped = packetId - expectedId;
-                    totalLostPackets += dropped;
-                    document.getElementById('val-loss').style.color = "var(--accent-red)";
+                    totalLostPackets += (packetId - expectedId);
                 }
             }
             lastPacketId = packetId;
 
-            // Extract the 20 dynamic floats recursively matching our offset layout
             let offset = 8;
             const sample = {
                 timestamp: Date.now(),
@@ -519,162 +1009,47 @@
                 offset += 4;
             });
 
-            // Commit structured sample to time-series database
             telemetryData.push(sample);
-
-            // Update Sidebar values
-            document.getElementById('val-state').innerText = superState;
-            document.getElementById('val-rpm').innerText = Math.round(sample.rpm);
-            document.getElementById('val-vbus').innerText = sample.vbus_avg.toFixed(1) + "V";
             
-            const totalScheduled = totalReceivedPackets + totalLostPackets;
-            const lossRate = (totalLostPackets / totalScheduled) * 100;
-            document.getElementById('val-loss').innerText = lossRate.toFixed(1) + "%";
-
-            // Draw to Canvas
+            // UI statistics update
+            const totalSched = totalReceivedPackets + totalLostPackets;
+            const lossRate = (totalLostPackets / totalSched) * 100;
+            
+            updateTimelineSliders();
             requestAnimationFrame(drawPlots);
         }
 
-        // --- 6. COMMAND SENDER ---
-        async function sendCommand(commandText) {
-            if (!port || !port.writable) return;
-            const encoder = new TextEncoder();
-            const data = encoder.encode(commandText + "\n");
-            
-            const writer = port.writable.getWriter();
-            await writer.write(data);
-            writer.releaseLock();
-        }
-
-        btnSend.addEventListener('click', () => {
-            const cmd = termInput.value;
-            if (cmd.trim()) {
-                sendCommand(cmd);
-                termInput.value = "";
-            }
-        });
-
-        termInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                btnSend.click();
-            }
-        });
-
-        // --- 7. FAST 2D CANVAS SCROLLING PLOTTER ---
-        function drawPlots() {
-            if (telemetryData.length === 0) return;
-
-            // Maintain canvas responsiveness matching page grid dimensions
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
-
-            const w = canvas.width;
-            const h = canvas.height;
-
-            ctx.clearRect(0, 0, w, h);
-
-            // Draw baseline timing grids
-            ctx.strokeStyle = "#1e293b";
-            ctx.lineWidth = 1;
-            for (let gridX = 0; gridX < w; gridX += w / 10) {
-                ctx.beginPath();
-                ctx.moveTo(gridX, 0);
-                ctx.lineTo(gridX, h);
-                ctx.stroke();
-            }
-            for (let gridY = 0; gridY < h; gridY += h / 6) {
-                ctx.beginPath();
-                ctx.moveTo(0, gridY);
-                ctx.lineTo(w, gridY);
-                ctx.stroke();
-            }
-
-            // Bound visible graphing window to last 300 processed telemetry points (scrolling time-axis)
-            const maxPoints = 300;
-            const sliceStart = Math.max(0, telemetryData.length - maxPoints);
-            const activeSlice = telemetryData.slice(sliceStart);
-
-            TELEMETRY_LAYOUT.forEach(v => {
-                if (!v.active) return;
-
-                // 1. Calculate adaptive dynamic scale bounds for this specific variable channel
-                let minVal = Infinity;
-                let maxVal = -Infinity;
-
-                activeSlice.forEach(d => {
-                    const val = d[v.name];
-                    if (val < minVal) minVal = val;
-                    if (val > maxVal) maxVal = val;
-                });
-
-                // Add minor scaling cushion to prevent line clipping
-                const range = maxVal - minVal;
-                minVal -= range * 0.05;
-                maxVal += range * 0.05;
-                if (Math.abs(range) < 0.001) {
-                    minVal -= 1;
-                    maxVal += 1;
-                }
-
-                // 2. Plot time-series line path
-                ctx.beginPath();
-                ctx.strokeStyle = v.color;
-                ctx.lineWidth = 2;
-
-                activeSlice.forEach((d, idx) => {
-                    const x = (idx / (activeSlice.length - 1)) * w;
-                    // Invert coordinates since canvas 0 is at top-left
-                    const y = h - ((d[v.name] - minVal) / (maxVal - minVal)) * h;
-
-                    if (idx === 0) {
-                        ctx.moveTo(x, y);
-                    } else {
-                        ctx.lineTo(x, y);
-                    }
-                });
-                ctx.stroke();
-
-                // Draw variable min/max text labels on left side of plot
-                ctx.fillStyle = v.color;
-                ctx.font = "10px sans-serif";
-                ctx.fillText(`${v.label} Max: ${maxVal.toFixed(1)}`, 10, 15 + TELEMETRY_LAYOUT.indexOf(v) * 12);
-            });
-        }
-
-        // --- 8. CSV EXPORT UTILITY ---
+        // --- 10. SYSTEM LOGGER & CSV EXPORTERS ---
         document.getElementById('btn-save').addEventListener('click', () => {
             if (telemetryData.length === 0) {
                 alert("No telemetry samples captured yet.");
                 return;
             }
 
-            // Generate header columns
             let csv = "Timestamp,Packet_ID,Super_State,MC_State,Ctrl_Mode,";
             csv += TELEMETRY_LAYOUT.map(v => v.name).join(",") + "\n";
 
-            // Append data rows
             telemetryData.forEach(d => {
                 let row = `${d.timestamp},${d.packet_id},${d.super_state},${d.mc_state},${d.ctrl_mode},`;
                 row += TELEMETRY_LAYOUT.map(v => d[v.name]).join(",");
                 csv += row + "\n";
             });
 
-            // Trigger local client-side download to computer
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `WRSM_Telemetry_${new Date().toISOString().replace(/[:.]/g, '-')}.csv`;
+            a.download = `WRSM_Diagnostic_Log_${new Date().toISOString().replace(/[:.]/g, '-')}.csv`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
         });
 
-        // --- 9. LOCAL LOG LOAD UTILITY ---
+        // --- 11. LOCAL DIAGNOSTIC FILE LOADER ---
         document.getElementById('file-load').addEventListener('change', (e) => {
             const files = e.target.files;
-            if (!files || files.length === 0) return; // Verify a file was actually chosen
-            const file = files[0]; // Extract the single File object from the FileList
+            if (!files || files.length === 0) return;
+            const file = files;
 
             const reader = new FileReader();
             reader.onload = function(evt) {
@@ -682,23 +1057,22 @@
                 const lines = text.split("\n");
                 if (lines.length < 2) return;
 
-                // Match layout indices - Use lines[0] to grab the header string
-                const headers = lines[0].trim().split(","); 
+                const headers = lines.trim().split(",");
                 const loadedSamples = [];
 
                 for (let i = 1; i < lines.length; i++) {
                     const lineText = lines[i].trim();
-                    if (!lineText) continue; // Skip trailing empty lines
+                    if (!lineText) continue;
 
                     const cols = lineText.split(",");
                     if (cols.length < headers.length) continue;
 
                     const sample = {
-                        timestamp: parseInt(cols[0]),
-                        packet_id: parseInt(cols[1]),
-                        super_state: parseInt(cols[2]),
-                        mc_state: parseInt(cols[3]),
-                        ctrl_mode: parseInt(cols[4])
+                        timestamp: parseInt(cols),
+                        packet_id: parseInt(cols[9]),
+                        super_state: parseInt(cols[10]),
+                        mc_state: parseInt(cols[11]),
+                        ctrl_mode: parseInt(cols[8])
                     };
 
                     TELEMETRY_LAYOUT.forEach((v) => {
@@ -715,12 +1089,148 @@
                 totalReceivedPackets = loadedSamples.length;
                 totalLostPackets = 0;
                 lastPacketId = null;
-                document.getElementById('val-loss').innerText = "0.0%";
                 
-                consoleDisplay.innerText = `--- Loaded ${loadedSamples.length} telemetry samples from file ---\n`;
+                liveFollowMode = false;
+                liveToggle.checked = false;
+                
+                consoleDisplay.innerText = `--- Loaded ${loadedSamples.length} diagnostic points from CSV ---\n`;
+                updateTimelineSliders();
                 requestAnimationFrame(drawPlots);
             };
             reader.readAsText(file);
+        });
+
+        // --- 12. CRANKING & STALL RUN FLIGHT SIMULATOR ---
+        document.getElementById('btn-simulate').addEventListener('click', () => {
+            telemetryData = [];
+            totalReceivedPackets = 0;
+            totalLostPackets = 0;
+            lastPacketId = null;
+
+            // Generate realistic 30-second start & stall test bench waveforms
+            const sampleCount = 1500; // 30 seconds @ 50Hz
+            
+            for (let i = 0; i < sampleCount; i++) {
+                const t = i / 50.0; // Simulated time in seconds
+                let super_state = 0; // standby
+                let rpm = 0.0;
+                let accel = 0.0;
+                let vbus = 14.2;
+                let iq = 0.0;
+                let id = 0.0;
+                let if_curr = 0.0;
+                let duty = 0.0;
+                let ctrl_mode = 10; // MC_CONTROL_MODE_NONE
+
+                if (t < 2.0) {
+                    // Pre-excitation
+                    super_state = 3; // PRE_EXCITE
+                    if_curr = t * 1.4; // ramp up field current
+                    vbus = 14.2 - 0.2 * t;
+                } else if (t < 7.0) {
+                    // Engine Cranking Ramping
+                    super_state = 4; // CRANKING
+                    ctrl_mode = 1; // CONTROL_MODE_SPEED
+                    const startT = t - 2.0;
+                    if_curr = 2.8;
+                    rpm = Math.min(4800, startT * 960); // Speed ramps to 4800 ERPM
+                    accel = 960 + Math.sin(t * 30.0) * 150; // Engine torsional shaking
+                    iq = 100 - startT * 10;
+                    duty = Math.min(0.85, 0.1 + startT * 0.15);
+                    vbus = 11.2 + Math.random() * 0.4; // voltage sag
+                } else if (t < 20.0) {
+                    // Alternator charging / Running State
+                    super_state = 5; // ALTERNATOR
+                    ctrl_mode = 2; // CONTROL_MODE_CURRENT
+                    if_curr = 1.2 + Math.sin(t * 0.5) * 0.4; // optimal loss controller hunting
+                    rpm = 3000 + Math.sin(t * 2.0) * 200; // engine idle
+                    accel = Math.sin(t * 2.0) * 40;
+                    iq = -50 - Math.sin(t * 1.5) * 10; // Generating current (negative)
+                    duty = 0.45;
+                    vbus = 13.8 + Math.sin(t * 0.5) * 0.2; // charging voltage settling
+                } else if (t < 25.0) {
+                    // Drag down near a Stall catch transient
+                    super_state = 6; // STALL_CATCH
+                    ctrl_mode = 1; // speed control catch mode
+                    const stallT = t - 20.0;
+                    if_curr = 2.8; // Max Field for max torque catch
+                    rpm = Math.max(800, 3000 - stallT * 600); // speed drops!
+                    accel = -600 + Math.sin(t * 50.0) * 350; // violent engine shaking!
+                    iq = Math.min(150.0, stallT * 40); // Maximum current dump to catch block!
+                    duty = 0.75;
+                    vbus = 11.8 - stallT * 0.3; // battery sag under heavy catch
+                } else {
+                    // Post-stall / Coast down to OFF
+                    super_state = 2; // STOPPING
+                    ctrl_mode = 10;
+                    const stopT = t - 25.0;
+                    rpm = Math.max(0, 800 - stopT * 160);
+                    accel = -160;
+                    if_curr = Math.max(0, 2.8 - stopT * 1.5); // decay field
+                    vbus = 12.8;
+                }
+
+                // Append minor high-frequency noise elements to float variables
+                const noise = () => (Math.random() - 0.5) * 0.05;
+
+                telemetryData.push({
+                    timestamp: Date.now() - (sampleCount - i) * 20,
+                    packet_id: i,
+                    super_state,
+                    mc_state: rpm > 100 ? 2 : 0, // RUNNING or OFF
+                    ctrl_mode,
+                    rpm: rpm + noise() * 10,
+                    accel_avg: accel,
+                    accel_mad: Math.abs(accel * 0.15) + Math.random() * 20, // shake severity
+                    iq_avg: iq + noise() * 5,
+                    iq_mad: Math.abs(iq * 0.08) + Math.random() * 2,
+                    iq_target: iq,
+                    id_avg: id,
+                    id_min: id - 2,
+                    id_max: id + 2,
+                    if_avg: if_curr,
+                    if_mad: Math.abs(if_curr * 0.05) + Math.random() * 0.1,
+                    field_pwm_avg: if_curr / 3.0,
+                    field_pwm_mad: Math.random() * 0.02,
+                    vbus_avg: vbus,
+                    vbus_min: vbus - 0.2,
+                    vbus_max: vbus + 0.2,
+                    duty_avg: duty,
+                    duty_max: duty + 0.05,
+                    if_min: if_curr - 0.1,
+                    stator_fw_id: 0.0
+                });
+            }
+
+            totalReceivedPackets = sampleCount;
+            liveFollowMode = false;
+            liveToggle.checked = false;
+            
+            consoleDisplay.innerText = "--- Generated 30-Second Cranking & Stall Run Simulation Data ---\n";
+            updateTimelineSliders();
+            requestAnimationFrame(drawPlots);
+        });
+
+        // --- 13. TRANSMITTER CMDS ---
+        async function sendCommand(commandText) {
+            if (!port || !port.writable) return;
+            const encoder = new TextEncoder();
+            const data = encoder.encode(commandText + "\n");
+            const writer = port.writable.getWriter();
+            await writer.write(data);
+            writer.releaseLock();
+        }
+
+        btnSend.addEventListener('click', () => {
+            const cmd = termInput.value;
+            if (cmd.trim()) {
+                sendCommand(cmd);
+                termInput.value = "";
+            }
+        });
+
+        termInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') btnSend.click();
         });
     </script>
 </body>
