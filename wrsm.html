@@ -658,7 +658,7 @@
     </div>
 
     <script>
-        const APP_VERSION = "0.17";
+        const APP_VERSION = "0.18";
         const PACKET_SIZE = 101;
         const START_MARKER = 0xAA;
 
@@ -2196,6 +2196,9 @@ ${alerts.join("\n")}
 
             const sampleCount = 2500; 
             const targetERPM = CONFIG.target_erpm;
+
+            // Define noise helper (resolves ReferenceError)
+            const noise = () => (Math.random() - 0.5) * 0.05;
 
             for (let i = 0; i < sampleCount; i++) {
                 const t = i / 50.0;
