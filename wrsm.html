@@ -43,7 +43,7 @@
 
         .dashboard {
             display: grid;
-            grid-template-columns: 350px 1fr;
+            grid-template-columns: 350px 1fr 280px; /* Upgraded to 3 Columns */
             grid-template-rows: 1fr 200px;
             gap: 12px;
             flex-grow: 1;
@@ -51,7 +51,7 @@
             min-height: 0;
         }
 
-        /* Sidebar styles */
+        /* Left Sidebar (No changes) */
         .sidebar {
             grid-row: 1 / span 2;
             display: flex;
@@ -59,6 +59,81 @@
             gap: 12px;
             overflow-y: auto;
             min-height: 0;
+        }
+
+        /* Right Sidebar for Custom Scales */
+        .right-sidebar {
+            grid-column: 3;
+            grid-row: 1 / span 2;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+            min-height: 0;
+            background-color: var(--bg-primary);
+            border-left: 1px solid var(--border-color);
+            padding-left: 10px;
+        }
+
+        .scale-card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .scale-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 4px;
+        }
+
+        .scale-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            font-size: 0.72rem;
+        }
+
+        .scale-slice-info {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-family: monospace;
+        }
+
+        .scale-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .scale-inputs div {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .scale-inputs input {
+            padding: 4px 6px;
+            font-size: 0.75rem;
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-main);
+            text-align: center;
+        }
+
+        .scale-inputs input:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
         }
 
         .card {
@@ -408,6 +483,43 @@
                 </div>
             </div>
 
+            <div class="card">
+                <div class="card-title">
+                    WRSM Settings
+                    <button id="btn-apply-settings" style="width: auto; padding: 2px 8px; font-size: 0.7rem; background-color: var(--accent-blue);">Apply</button>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div>
+                        <label>Pole Pairs</label>
+                        <input type="number" id="cfg-poles" value="8" step="1">
+                    </div>
+                    <div>
+                        <label>Field Res. (Ω)</label>
+                        <input type="number" id="cfg-rfield" value="5.60" step="0.01">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div>
+                        <label>Handoff ERPM</label>
+                        <input type="number" id="cfg-handoff-erpm" value="900" step="50">
+                    </div>
+                    <div>
+                        <label>Start Target ERPM</label>
+                        <input type="number" id="cfg-target-erpm" value="4800" step="100">
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div>
+                        <label>Stall Catch ERPM</label>
+                        <input type="number" id="cfg-stall-erpm" value="2000" step="100">
+                    </div>
+                    <div>
+                        <label>Stall Accel (ERPM/s)</label>
+                        <input type="number" id="cfg-stall-accel" value="-1000" step="100">
+                    </div>
+                </div>
+            </div>
+
         </div>
 
         <!-- CANVAS PLOTTER -->
@@ -465,14 +577,35 @@
             </div>
         </div>
 
+        <!-- RIGHT SIDEBAR CONTAINER -->
+        <div class="right-sidebar" id="right-sidebar-container">
+            <div class="card" style="flex-shrink: 0;">
+                <div class="card-title">Axis Scalers</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; padding: 10px 0;">
+                    Toggle chart variables below to manage their scaling limits.
+                </div>
+            </div>
+            <div id="active-scales-list" style="display: flex; flex-direction: column; gap: 10px; flex-grow: 1; overflow-y: auto;">
+                <!-- Scale cards will be dynamically injected here -->
+            </div>
+        </div>
+
     </div>
 
     <script>
-        // --- 1. CONFIGURATION & TELEMETRY DEFINITION ---
+        // --- CONFIGURATION & TELEMETRY DEFINITION ---
         const PACKET_SIZE = 89;
         const START_MARKER = 0xAA;
-        const FIELD_R_OHMS = 5.60; // Standard Wound Rotor Field Resistance at 22C
-        const POLE_PAIRS = 8.0;     // 16-pole motor (8 PP)
+        
+        // Master Global Configuration Object
+        const CONFIG = {
+            pole_pairs: 8.0,
+            field_r_ohms: 5.60,
+            handoff_erpm: 1000.0,
+            target_erpm: 4800.0,
+            stall_erpm: 2000.0,
+            stall_accel: -1000.0
+        };
 
         // Piecewise lookup table from classicp hardware file
         const MGU_IF_TABLE = [
@@ -514,6 +647,7 @@
         ];
 
         const TELEMETRY_LAYOUT = [
+            // --- Raw Telemetry Inputs ---
             { name: "rpm", label: "Speed (ERPM)", color: "#3b82f6", active: true },
             { name: "accel_avg", label: "Accel (Avg)", color: "#10b981", active: true },
             { name: "accel_mad", label: "Accel (MAD)", color: "#f59e0b", active: false },
@@ -533,10 +667,24 @@
             { name: "duty_avg", label: "FOC Duty (Avg)", color: "#22c55e", active: false },
             { name: "duty_max", label: "FOC Duty (Max)", color: "#14532d", active: false },
             { name: "if_min", label: "If Field (Min)", color: "#fdba74", active: false },
-            { name: "stator_fw_id", label: "Stator FW Id", color: "#93c5fd", active: false }
+            { name: "stator_fw_id", label: "Stator FW Id", color: "#93c5fd", active: false },
+
+            // --- "Append on Arrival" Derived Parameters ---
+            { name: "flux", label: "λ Flux (mWb)", color: "#fbbf24", active: false },
+            { name: "ld", label: "Ld Inductance (uH)", color: "#2dd4bf", active: false },
+            { name: "lq", label: "Lq Inductance (uH)", color: "#f472b6", active: false },
+            { name: "ld_lq_diff", label: "Saliency Lq-Ld (uH)", color: "#c084fc", active: false },
+            { name: "t_mag", label: "Torque: Magnetic (Nm)", color: "#fb7185", active: false },
+            { name: "t_rel", label: "Torque: Reluctance (Nm)", color: "#38bdf8", active: false },
+            { name: "t_total", label: "Torque: Total Joint (Nm)", color: "#4ade80", active: true },
+            { name: "power_mech", label: "Mech Power Output (W)", color: "#34d399", active: false },
+            { name: "power_rotor", label: "Rotor Copper Loss (W)", color: "#f87171", active: false },
+            { name: "power_stator", label: "Stator Elec Power (W)", color: "#60a5fa", active: false },
+            { name: "power_elec_total", label: "Total Elec Input (W)", color: "#a78bfa", active: false },
+            { name: "efficiency", label: "System Efficiency (%)", color: "#e879f9", active: false }
         ];
 
-        // --- 2. GLOBAL STATE ---
+        // --- GLOBAL STATE ---
         let port = null;
         let reader = null;
         let rxBuffer = new Uint8Array(0);
@@ -564,8 +712,9 @@
         const sliderMinLabel = document.getElementById('slider-min');
         const sliderMaxLabel = document.getElementById('slider-max');
         const activePacketLabel = document.getElementById('active-packet-val');
+        
 
-        // --- 3. DYNAMIC VALUE LOOKUPS & MATHEMATICAL DERIVATIONS ---
+        // --- DYNAMIC VALUE LOOKUPS & MATHEMATICAL DERIVATIONS ---
         function wrsmLookup(ifVal) {
             if (ifVal <= 0.0) ifVal = 0.0;
             let targetRow = MGU_IF_TABLE.length - 1; // Floor row 4
@@ -588,48 +737,70 @@
             };
         }
 
-        function calculatePhysics(d) {
+        function applyConfigSettings() {
+            CONFIG.pole_pairs   = parseFloat(document.getElementById('cfg-poles').value) || 8.0;
+            CONFIG.field_r_ohms = parseFloat(document.getElementById('cfg-rfield').value) || 5.60;
+            CONFIG.handoff_erpm = parseFloat(document.getElementById('cfg-handoff-erpm').value) || 900.0;
+            CONFIG.target_erpm  = parseFloat(document.getElementById('cfg-target-erpm').value) || 4800.0;
+            CONFIG.stall_erpm   = parseFloat(document.getElementById('cfg-stall-erpm').value) || 2000.0;
+            CONFIG.stall_accel  = parseFloat(document.getElementById('cfg-stall-accel').value) || -1000.0;
+            
+            consoleDisplay.innerText += `--- Settings Applied: PP=${CONFIG.pole_pairs}, Rfield=${CONFIG.field_r_ohms}Ω, Handoff=${CONFIG.handoff_erpm} ERPM ---\n`;
+            consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
+
+            // Re-draw any existing loaded/simulated plots using the updated physics configuration
+            if (telemetryData.length > 0) {
+                // Recalculate derived physics parameters for all stored samples using new config
+                telemetryData.forEach(d => {
+                    const derived = runPhysicsMath(d);
+                    Object.assign(d, derived);
+                });
+                requestAnimationFrame(drawPlots);
+            }
+        }
+
+        document.getElementById('btn-apply-settings').addEventListener('click', applyConfigSettings);
+
+
+        function runPhysicsMath(d) {
             const lookup = wrsmLookup(d.if_avg);
             const flux_wb = lookup.flux;
-            const ldiff_h = lookup.ld_lq_diff * 1e-6; // convert back to Henrys
+            const ldiff_h = lookup.ld_lq_diff * 1e-6; // Translate µH back to Henrys
             
-            // Torque components
-            const t_mag = 1.5 * POLE_PAIRS * flux_wb * d.iq_avg;
-            const t_rel = -1.5 * POLE_PAIRS * ldiff_h * d.id_avg * d.iq_avg;
+            // Torque split calculations
+            const t_mag = 1.5 * CONFIG.pole_pairs * flux_wb * d.iq_avg;
+            const t_rel = -1.5 * CONFIG.pole_pairs * ldiff_h * d.id_avg * d.iq_avg;
             const t_total = t_mag + t_rel;
 
-            // Mechanical Power: w = speed_pll / PP
-            const rpm_mech = d.rpm / POLE_PAIRS;
+            // Mechanical Shaft Angular Velocity
+            const rpm_mech = d.rpm / CONFIG.pole_pairs;
             const omega_mech = rpm_mech * (2.0 * Math.PI / 60.0);
             const power_mech = t_total * omega_mech;
 
-            // Electrical Power Losses & Inputs
-            const power_rotor = Math.pow(d.if_avg, 2) * FIELD_R_OHMS;
-            // First order FOC stator input power estimate (V_bus * I_bus) where I_bus = Iq * duty
+            // System Electrical Power Expenditures
+            const power_rotor = Math.pow(d.if_avg, 2) * CONFIG.field_r_ohms;
             const power_stator = d.vbus_avg * d.iq_avg * d.duty_avg;
             const power_elec_total = power_stator + power_rotor;
 
-            // Bi-directional Efficiency Calculation
+            // System Efficiency Assessment
             let efficiency = 0.0;
-            let operationMode = "STANDBY";
+            let opMode = "STANDBY";
 
             if (power_mech > 1.0) {
-                // Motoring (Cranking)
-                operationMode = "MOTORING";
-                efficiency = power_elec_total > 0 ? (power_mech / power_elec_total) * 100.0 : 0;
+                opMode = "MOTORING";
+                efficiency = power_elec_total > 0 ? (power_mech / power_elec_total) * 100.0 : 0.0;
             } else if (power_mech < -1.0) {
-                // Generating (Alternator Active)
-                operationMode = "GENERATING";
+                opMode = "GENERATING";
                 const net_generated = Math.abs(power_stator);
                 const mechanical_input = Math.abs(power_mech);
-                // Subtraction of rotor field power consumption from generated power
-                efficiency = mechanical_input > 0 ? ((net_generated - power_rotor) / mechanical_input) * 100.0 : 0;
+                efficiency = mechanical_input > 0 ? ((net_generated - power_rotor) / mechanical_input) * 100.0 : 0.0;
             }
-            if (efficiency < 0.0) efficiency = 0.0;
-            if (efficiency > 100.0) efficiency = 100.0;
 
             return {
-                ...lookup,
+                flux: flux_wb * 1000.0, // mWb for nice graphing
+                ld: lookup.ld,
+                lq: lookup.lq,
+                ld_lq_diff: lookup.ld_lq_diff,
                 t_mag,
                 t_rel,
                 t_total,
@@ -637,12 +808,12 @@
                 power_rotor,
                 power_stator,
                 power_elec_total,
-                efficiency,
-                operationMode
+                efficiency: Math.max(0.0, Math.min(100.0, efficiency)),
+                operation_mode: opMode
             };
         }
 
-        // --- 4. THE INTERACTIVE PLAYBACK TIMELINE CONTROL SYSTEM ---
+        // --- THE INTERACTIVE PLAYBACK TIMELINE CONTROL SYSTEM ---
         function updateTimelineSliders() {
             const count = telemetryData.length;
             if (count === 0) {
@@ -693,7 +864,7 @@
             requestAnimationFrame(drawPlots);
         });
 
-        // --- 5. INTERACTIVE CANVAS HOVER INSPECTION ---
+        // --- INTERACTIVE CANVAS HOVER INSPECTION ---
         canvas.addEventListener('mousemove', (e) => {
             const rect = canvas.getBoundingClientRect();
             mouseX = e.clientX - rect.left;
@@ -736,7 +907,7 @@
             return windowSelect.value;
         }
 
-        // --- 6. UNIFIED INSPECTOR VIEW UPDATE ---
+        // --- UNIFIED INSPECTOR VIEW UPDATE ---
         function updateInspector(sample) {
             if (!sample) return;
 
@@ -776,7 +947,7 @@
             return modes[val] || "UNKNOWN";
         }
 
-        // --- 7. FAST 2D CANVAS SCROLLING PLOTTER ---
+        // --- FAST 2D CANVAS SCROLLING PLOTTER ---
         function drawPlots() {
             if (telemetryData.length === 0) return;
 
@@ -787,7 +958,7 @@
 
             ctx.clearRect(0, 0, w, h);
 
-            // Draw grid lines
+            // Draw Gridlines
             ctx.strokeStyle = "#1e293b";
             ctx.lineWidth = 1;
             for (let gridX = 0; gridX < w; gridX += w / 10) {
@@ -808,6 +979,7 @@
             TELEMETRY_LAYOUT.forEach(v => {
                 if (!v.active) return;
 
+                // Find active slice boundaries
                 let minVal = Infinity;
                 let maxVal = -Infinity;
 
@@ -817,35 +989,51 @@
                     if (val > maxVal) maxVal = val;
                 });
 
-                // Scaling buffer
-                const range = maxVal - minVal;
-                minVal -= range * 0.05;
-                maxVal += range * 0.05;
-                if (Math.abs(range) < 0.001) {
-                    minVal -= 1;
-                    maxVal += 1;
+                // Update the Slice readouts inside the Sidebar cards dynamically
+                const sliceMinEl = document.getElementById(`scale-slice-min-${v.name}`);
+                const sliceMaxEl = document.getElementById(`scale-slice-max-${v.name}`);
+                if (sliceMinEl && sliceMaxEl) {
+                    sliceMinEl.innerText = minVal !== Infinity ? minVal.toFixed(1) : "-";
+                    sliceMaxEl.innerText = maxVal !== Infinity ? maxVal.toFixed(1) : "-";
                 }
 
-                // Plot line
+                // Determine active plot scaling limits
+                let plotMin, plotMax;
+                if (v.autoScale !== false) {
+                    // Auto cushion scaling
+                    const range = maxVal - minVal;
+                    plotMin = minVal - range * 0.05;
+                    plotMax = maxVal + range * 0.05;
+                    if (Math.abs(range) < 0.001) {
+                        plotMin -= 1;
+                        plotMax += 1;
+                    }
+                } else {
+                    // Lock to user manual overrides
+                    plotMin = v.manualMin;
+                    plotMax = v.manualMax;
+                }
+
+                // Plot Line Path
                 ctx.beginPath();
                 ctx.strokeStyle = v.color;
                 ctx.lineWidth = 2;
 
                 activeSlice.forEach((d, idx) => {
                     const x = (idx / (activeSlice.length - 1)) * w;
-                    const y = h - ((d[v.name] - minVal) / (maxVal - minVal)) * h;
+                    const y = h - ((d[v.name] - plotMin) / (plotMax - plotMin)) * h;
                     if (idx === 0) ctx.moveTo(x, y);
                     else ctx.lineTo(x, y);
                 });
                 ctx.stroke();
 
-                // Plot min/max values
+                // Plot limits overlay
                 ctx.fillStyle = v.color;
-                ctx.font = "10px sans-serif";
-                ctx.fillText(`${v.label} Range: [${minVal.toFixed(1)}, ${maxVal.toFixed(1)}]`, 10, 15 + TELEMETRY_LAYOUT.indexOf(v) * 12);
+                ctx.font = "9px sans-serif";
+                ctx.fillText(`${v.label} Limits: [${plotMin.toFixed(1)}, ${plotMax.toFixed(1)}]`, 10, 15 + TELEMETRY_LAYOUT.indexOf(v) * 12);
             });
 
-            // Draw vertical hover/scrub cursor line if mouse is on canvas or paused
+            // Draw vertical hover/scrub cursor line if mouse is active
             const activeIdx = getActiveIndex();
             if (activeIdx >= startIndex && activeIdx < endIndex) {
                 const sliceIdx = activeIdx - startIndex;
@@ -853,23 +1041,106 @@
                 
                 ctx.strokeStyle = "var(--accent-gold)";
                 ctx.lineWidth = 1;
-                ctx.setLineDash([8]);
                 ctx.beginPath();
                 ctx.moveTo(cursorX, 0);
                 ctx.lineTo(cursorX, h);
                 ctx.stroke();
-                ctx.setLineDash([]); // Reset
                 
-                // Draw packet index box on cursor
                 ctx.fillStyle = "var(--accent-gold)";
                 ctx.font = "bold 9px monospace";
                 ctx.fillText(`Pt:${telemetryData[activeIdx].packet_id}`, cursorX + 4, h - 10);
             }
         }
 
-        // --- 8. UI TOGGLES GENERATION ---
+        // --- Generates, updates, or destroys right-sidebar scale cards on-demand ---
+        function syncScaleCards() {
+            const container = document.getElementById('active-scales-list');
+            
+            TELEMETRY_LAYOUT.forEach(v => {
+                let card = document.getElementById(`scale-card-${v.name}`);
+                
+                if (v.active) {
+                    if (!card) {
+                        // Set standard safe defaults based on physics domains
+                        if (v.autoScale === undefined) v.autoScale = true;
+                        if (v.manualMin === undefined) {
+                            if (v.name === "rpm") v.manualMin = 0;
+                            else if (v.name.includes("duty") || v.name.includes("pwm")) v.manualMin = 0.0;
+                            else if (v.name.includes("vbus")) v.manualMin = 0.0;
+                            else if (v.name.includes("efficiency")) v.manualMin = 0.0;
+                            else v.manualMin = -50;
+                        }
+                        if (v.manualMax === undefined) {
+                            if (v.name === "rpm") v.manualMax = 6000;
+                            else if (v.name.includes("duty") || v.name.includes("pwm")) v.manualMax = 1.0;
+                            else if (v.name.includes("vbus")) v.manualMax = 20.0;
+                            else if (v.name.includes("efficiency")) v.manualMax = 100.0;
+                            else if (v.name.includes("power")) v.manualMax = 2000;
+                            else v.manualMax = 50;
+                        }
+
+                        // Create Card Element
+                        card = document.createElement('div');
+                        card.className = "scale-card";
+                        card.id = `scale-card-${v.name}`;
+                        card.style.borderLeft = `4px solid ${v.color}`;
+                        card.innerHTML = `
+                            <div class="scale-header" style="color: ${v.color};">
+                                <span>● ${v.label}</span>
+                                <label style="display: inline-flex; align-items: center; gap: 3px; cursor: pointer; margin: 0;">
+                                    <input type="checkbox" id="scale-auto-${v.name}" ${v.autoScale ? 'checked' : ''} style="width: auto; margin: 0;"> Auto
+                                </label>
+                            </div>
+                            <div class="scale-row">
+                                <span class="scale-slice-info">Visible: [<span id="scale-slice-min-${v.name}">-</span>, <span id="scale-slice-max-${v.name}">-</span>]</span>
+                            </div>
+                            <div class="scale-inputs">
+                                <div>
+                                    <label>Min</label>
+                                    <input type="number" step="any" id="scale-input-min-${v.name}" value="${v.manualMin}" ${v.autoScale ? 'disabled' : ''}>
+                                </div>
+                                <div>
+                                    <label>Max</label>
+                                    <input type="number" step="any" id="scale-input-max-${v.name}" value="${v.manualMax}" ${v.autoScale ? 'disabled' : ''}>
+                                </div>
+                            </div>
+                        `;
+                        container.appendChild(card);
+
+                        // Bind Reactive Scale Input Events
+                        const autoCheck = card.querySelector(`#scale-auto-${v.name}`);
+                        const minInput = card.querySelector(`#scale-input-min-${v.name}`);
+                        const maxInput = card.querySelector(`#scale-input-max-${v.name}`);
+
+                        autoCheck.addEventListener('change', (e) => {
+                            v.autoScale = e.target.checked;
+                            minInput.disabled = v.autoScale;
+                            maxInput.disabled = v.autoScale;
+                            requestAnimationFrame(drawPlots);
+                        });
+
+                        minInput.addEventListener('input', (e) => {
+                            v.manualMin = parseFloat(e.target.value) || 0;
+                            requestAnimationFrame(drawPlots);
+                        });
+
+                        maxInput.addEventListener('input', (e) => {
+                            v.manualMax = parseFloat(e.target.value) || 0;
+                            requestAnimationFrame(drawPlots);
+                        });
+                    }
+                } else {
+                    // Destroy card if variable is untoggled
+                    if (card) card.remove();
+                }
+            });
+        }
+
+        // --- Variable Toggle Creator ---
         function initToggles() {
             const container = document.getElementById('plot-selectors-container');
+            container.innerHTML = ""; // Clear
+            
             TELEMETRY_LAYOUT.forEach((v) => {
                 const tag = document.createElement('label');
                 tag.className = "selector-tag";
@@ -880,6 +1151,7 @@
                 checkbox.checked = v.active;
                 checkbox.addEventListener('change', (e) => {
                     v.active = e.target.checked;
+                    syncScaleCards(); // Re-align sidebar cards
                     requestAnimationFrame(drawPlots);
                 });
 
@@ -887,10 +1159,12 @@
                 tag.appendChild(document.createTextNode(v.label));
                 container.appendChild(tag);
             });
+            
+            syncScaleCards(); // Build initial cards on startup
         }
         initToggles();
 
-        // --- 9. HARNESS SERIAL CONNECTIONS ---
+        // --- HARNESS SERIAL CONNECTIONS ---
         btnConnect.addEventListener('click', async () => {
             if (port) { await disconnect(); } 
             else { await connect(); }
@@ -981,20 +1255,24 @@
 
         function parseBinaryPacket(bytes) {
             const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-            const packetId = view.getUint32(1, true);
+            
+            // 1. Extract 32-bit Sequence ID and System State Enums
+            const packetId = view.getUint32(1, true); // Little Endian
             const superState = view.getUint8(5);
             const mcState = view.getUint8(6);
             const ctrlMode = view.getUint8(7);
 
+            // Frame Drop Sequence Monitoring
             totalReceivedPackets++;
             if (lastPacketId !== null) {
-                const expectedId = (lastPacketId + 1) >>> 0;
+                const expectedId = (lastPacketId + 1) >>> 0; // Unsigned 32-bit addition
                 if (packetId !== expectedId && packetId > expectedId) {
                     totalLostPackets += (packetId - expectedId);
                 }
             }
             lastPacketId = packetId;
 
+            // 2. Build Base Raw Data Sample (Mapping 20 Physical Floats)
             let offset = 8;
             const sample = {
                 timestamp: Date.now(),
@@ -1004,22 +1282,46 @@
                 ctrl_mode: ctrlMode
             };
 
-            TELEMETRY_LAYOUT.forEach(v => {
+            // Unpack physical UART floats from byte indices
+            TELEMETRY_LAYOUT.slice(0, 20).forEach(v => {
                 sample[v.name] = view.getFloat32(offset, true);
                 offset += 4;
             });
 
+            // 3. Compute Config-Driven Physics & Append Derived Parameters "On Arrival"
+            const phy = runPhysicsMath(sample);
+            Object.assign(sample, phy); // Merge derived properties into the master sample object
+
+            // 4. Commit fully populated data object to the historical database
             telemetryData.push(sample);
             
-            // UI statistics update
-            const totalSched = totalReceivedPackets + totalLostPackets;
-            const lossRate = (totalLostPackets / totalSched) * 100;
+            // 5. Update real-time Sidebar Statistics (with safety fallbacks)
+            const stateEl = document.getElementById('val-state');
+            const rpmEl = document.getElementById('val-rpm');
+            const vbusEl = document.getElementById('val-vbus');
+            const lossEl = document.getElementById('val-loss');
+
+            if (stateEl) stateEl.innerText = sample.super_state;
+            if (rpmEl) rpmEl.innerText = Math.round(sample.rpm);
+            if (vbusEl) vbusEl.innerText = sample.vbus_avg.toFixed(1) + "V";
             
+            if (lossEl) {
+                const totalSched = totalReceivedPackets + totalLostPackets;
+                const lossRate = totalSched > 0 ? (totalLostPackets / totalSched) * 100 : 0.0;
+                lossEl.innerText = lossRate.toFixed(1) + "%";
+                if (lossRate > 1.0) {
+                    lossEl.style.color = "var(--accent-red)";
+                } else {
+                    lossEl.style.color = "var(--accent-green)";
+                }
+            }
+
+            // 6. Refresh Timeline Scrollbars and Schedule Canvas Plot Redraw
             updateTimelineSliders();
             requestAnimationFrame(drawPlots);
         }
 
-        // --- 10. SYSTEM LOGGER & CSV EXPORTERS ---
+        // --- SYSTEM LOGGER & CSV EXPORTERS ---
         document.getElementById('btn-save').addEventListener('click', () => {
             if (telemetryData.length === 0) {
                 alert("No telemetry samples captured yet.");
@@ -1045,7 +1347,7 @@
             document.body.removeChild(a);
         });
 
-        // --- 11. LOCAL DIAGNOSTIC FILE LOADER ---
+        // --- LOCAL DIAGNOSTIC FILE LOADER ---
         document.getElementById('file-load').addEventListener('change', (e) => {
             const files = e.target.files;
             if (!files || files.length === 0) return;
@@ -1100,7 +1402,7 @@
             reader.readAsText(file);
         });
 
-        // --- 12. CRANKING & STALL RUN FLIGHT SIMULATOR ---
+        // --- CRANKING & STALL RUN FLIGHT SIMULATOR ---
         document.getElementById('btn-simulate').addEventListener('click', () => {
             telemetryData = [];
             totalReceivedPackets = 0;
@@ -1211,7 +1513,7 @@
             requestAnimationFrame(drawPlots);
         });
 
-        // --- 13. TRANSMITTER CMDS ---
+        // --- TRANSMITTER CMDS ---
         async function sendCommand(commandText) {
             if (!port || !port.writable) return;
             const encoder = new TextEncoder();
