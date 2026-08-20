@@ -670,7 +670,7 @@
     </div>
 
     <script>
-        const APP_VERSION = "0.09";
+        const APP_VERSION = "0.11";
         // --- CONFIGURATION & TELEMETRY DEFINITION ---
         const PACKET_SIZE = 101;
         const NBR_FLOATS = 23;
@@ -690,22 +690,22 @@
         const INSPECTOR_TEMPLATE = `
             <div class="card-title">
                 Physics Inspector
-                <span id="inspecting-status" style="font-size: 0.7rem; color: var(--accent-gold); text-transform: none;">[Live]</span>
+                <span class="inspecting-status" style="font-size: 0.7rem; color: var(--accent-gold); text-transform: none;">[Live]</span>
             </div>
             
             <div class="inspector-section" style="margin-bottom: 10px;">
                 <div class="inspector-title">System States</div>
                 <div class="inspector-row">
                     <span class="inspector-label">Packet ID:</span>
-                    <span id="insp-packet-id" class="inspector-val">-</span>
+                    <span class="insp-packet-id inspector-val">-</span>
                 </div>
                 <div class="inspector-row">
                     <span class="inspector-label">Super State:</span>
-                    <span id="insp-super-state" class="inspector-val" style="color: var(--accent-blue);">-</span>
+                    <span class="insp-super-state inspector-val" style="color: var(--accent-blue);">-</span>
                 </div>
                 <div class="inspector-row">
                     <span class="inspector-label">MC State / Ctrl Mode:</span>
-                    <span id="insp-mc-ctrl" class="inspector-val">-</span>
+                    <span class="insp-mc-ctrl inspector-val">-</span>
                 </div>
             </div>
 
@@ -713,19 +713,19 @@
                 <div class="inspector-title" style="color: var(--accent-gold);">Rotor-Stator Lookups (If-driven)</div>
                 <div class="inspector-row">
                     <span class="inspector-label">Field Current If:</span>
-                    <span id="insp-if" class="inspector-val" style="color: var(--accent-gold);">-</span>
+                    <span class="insp-if inspector-val" style="color: var(--accent-gold);">-</span>
                 </div>
                 <div class="inspector-row">
                     <span class="inspector-label">Flux Linkage (λ):</span>
-                    <span id="insp-lookup-flux" class="inspector-val">-</span>
+                    <span class="insp-lookup-flux inspector-val">-</span>
                 </div>
                 <div class="inspector-row">
                     <span class="inspector-label">Inductance Ld / Lq:</span>
-                    <span id="insp-lookup-ldlq" class="inspector-val">-</span>
+                    <span class="insp-lookup-ldlq inspector-val">-</span>
                 </div>
                 <div class="inspector-row">
                     <span class="inspector-label">Saliency (Lq - Ld):</span>
-                    <span id="insp-lookup-saliency" class="inspector-val">-</span>
+                    <span class="insp-lookup-saliency inspector-val">-</span>
                 </div>
             </div>
 
@@ -733,19 +733,19 @@
                 <div class="inspector-title" style="color: var(--accent-blue);">Speed Controller Tuning</div>
                 <div class="inspector-row">
                     <span class="inspector-label">Speed Target:</span>
-                    <span id="insp-speed-target" class="inspector-val" style="color: var(--accent-blue);">-</span>
+                    <span class="insp-speed-target inspector-val" style="color: var(--accent-blue);">-</span>
                 </div>
                 <div class="inspector-row">
                     <span class="inspector-label">Tracking Error:</span>
-                    <span id="insp-speed-error" class="inspector-val">-</span>
+                    <span class="insp-speed-error inspector-val">-</span>
                 </div>
                 <div class="inspector-row">
                     <span class="inspector-label">PID Integrator:</span>
-                    <span id="insp-speed-iterm" class="inspector-val">-</span>
+                    <span class="insp-speed-iterm inspector-val">-</span>
                 </div>
                 <div class="inspector-row">
                     <span class="inspector-label">DC Bus Current:</span>
-                    <span id="insp-ibus" class="inspector-val">-</span>
+                    <span class="insp-ibus inspector-val">-</span>
                 </div>
             </div>
 
@@ -753,31 +753,31 @@
                 <div class="inspector-title" style="color: var(--accent-green);">Derived Parameters</div>
                 <div class="inspector-row">
                     <span class="inspector-label">Mag / Rel Torque:</span>
-                    <span id="insp-torque-split" class="inspector-val">-</span>
+                    <span class="insp-torque-split inspector-val">-</span>
                 </div>
                 <div class="inspector-row">
                     <span class="inspector-label">Total Joint Torque:</span>
-                    <span id="insp-torque-total" class="inspector-val" style="color: var(--accent-green);">-</span>
+                    <span class="insp-torque-total inspector-val" style="color: var(--accent-green);">-</span>
                 </div>
                 <div class="inspector-row">
                     <span class="inspector-label">Mech Output Power:</span>
-                    <span id="insp-power-mech" class="inspector-val" style="color: var(--accent-green);">-</span>
+                    <span class="insp-power-mech inspector-val" style="color: var(--accent-green);">-</span>
                 </div>
                 <div class="inspector-row">
                     <span class="inspector-label">Stator Power (True):</span>
-                    <span id="insp-power-stator" class="inspector-val">-</span>
+                    <span class="insp-power-stator inspector-val">-</span>
                 </div>
                 <div class="inspector-row">
                     <span class="inspector-label">Rotor Loss (If²R):</span>
-                    <span id="insp-power-rotor" class="inspector-val" style="color: var(--accent-red);">-</span>
+                    <span class="insp-power-rotor inspector-val" style="color: var(--accent-red);">-</span>
                 </div>
                 <div class="inspector-row">
                     <span class="inspector-label">Total Elec Input:</span>
-                    <span id="insp-power-elec-total" class="inspector-val">-</span>
+                    <span class="insp-power-elec-total inspector-val">-</span>
                 </div>
                 <div class="inspector-row">
                     <span class="inspector-label">System Efficiency:</span>
-                    <span id="insp-efficiency" class="inspector-val" style="color: #a855f7; font-size: 0.85rem;">-</span>
+                    <span class="insp-efficiency inspector-val" style="color: #a855f7; font-size: 0.85rem;">-</span>
                 </div>
             </div>
         `;
@@ -1114,7 +1114,7 @@
             
             selectedIndex = startIndex + sliceIdx;
             
-            document.getElementById('inspecting-status').innerText = `[Inspecting Pt: ${selectedIndex}]`;
+            updateInspectingStatus(`[Inspecting Pt: ${selectedIndex}]`, "var(--accent-gold)");
             document.getElementById('inspecting-status').style.color = "var(--accent-gold)";
             
             updateTimelineSliders();
@@ -1124,7 +1124,7 @@
         canvas.addEventListener('mouseleave', () => {
             mouseX = null;
             selectedIndex = null;
-            document.getElementById('inspecting-status').innerText = liveFollowMode ? "[Live]" : "[Paused]";
+            updateInspectingStatus(liveFollowMode ? "[Live]" : "[Paused]", liveFollowMode ? "var(--accent-green)" : "var(--accent-blue)");
             document.getElementById('inspecting-status').style.color = liveFollowMode ? "var(--accent-green)" : "var(--accent-blue)";
             
             updateTimelineSliders();
@@ -1135,30 +1135,67 @@
             return windowSelect.value;
         }
 
-        // --- UNIFIED INSPECTOR VIEW UPDATE ---
+        // Helper to update the Gold status text (e.g. [Live], [Inspecting Pt: 245]) across both cards
+        function updateInspectingStatus(statusText, color) {
+            ['review', 'analysis'].forEach(tab => {
+                const card = document.getElementById(`card-inspector-${tab}`);
+                if (!card) return;
+                const el = card.querySelector('.inspecting-status');
+                if (el) {
+                    el.innerText = statusText;
+                    if (color) el.style.color = color;
+                }
+            });
+        }
+
         function updateInspector(sample) {
             if (!sample) return;
 
-            // Direct readings
-            document.getElementById('insp-packet-id').innerText = sample.packet_id;
-            document.getElementById('insp-super-state').innerText = `${getSuperStateName(sample.super_state)} (${sample.super_state})`;
-            document.getElementById('insp-mc-ctrl').innerText = `MC: ${getMCStateName(sample.mc_state)} | Ctrl: ${getCtrlModeName(sample.ctrl_mode)}`;
-            document.getElementById('insp-if').innerText = sample.if_avg.toFixed(2) + " A";
-
-            // Derived lookups & physics calculations - Unified Config Engine
             const phy = runPhysicsMath(sample);
-            
-            document.getElementById('insp-lookup-flux').innerText = phy.flux.toFixed(2) + " mWb";
-            document.getElementById('insp-lookup-ldlq').innerText = `Ld: ${phy.ld.toFixed(1)} uH | Lq: ${phy.lq.toFixed(1)} uH`;
-            document.getElementById('insp-lookup-saliency').innerText = phy.ld_lq_diff.toFixed(1) + " uH";
+            const tracking_error = sample.speed_target - sample.rpm;
 
-            document.getElementById('insp-torque-split').innerText = `Mag: ${phy.t_mag.toFixed(1)} Nm | Rel: ${phy.t_rel.toFixed(1)} Nm`;
-            document.getElementById('insp-torque-total').innerText = phy.t_total.toFixed(1) + " Nm";
-            document.getElementById('insp-power-mech').innerText = phy.power_mech.toFixed(0) + " W";
-            document.getElementById('insp-power-stator').innerText = phy.power_stator.toFixed(0) + " W";
-            document.getElementById('insp-power-rotor').innerText = phy.power_rotor.toFixed(1) + " W";
-            document.getElementById('insp-power-elec-total').innerText = phy.power_elec_total.toFixed(0) + " W";
-            document.getElementById('insp-efficiency').innerText = `${phy.efficiency.toFixed(1)}% [${phy.operation_mode}]`;
+            // Map all target selectors to values
+            const updates = {
+                'insp-packet-id': sample.packet_id,
+                'insp-super-state': `${getSuperStateName(sample.super_state)} (${sample.super_state})`,
+                'insp-mc-ctrl': `MC: ${getMCStateName(sample.mc_state)} | Ctrl: ${getCtrlModeName(sample.ctrl_mode)}`,
+                'insp-if': sample.if_avg.toFixed(2) + " A",
+                'insp-lookup-flux': phy.flux.toFixed(2) + " mWb",
+                'insp-lookup-ldlq': `Ld: ${phy.ld.toFixed(1)} uH | Lq: ${phy.lq.toFixed(1)} uH`,
+                'insp-lookup-saliency': phy.ld_lq_diff.toFixed(1) + " uH",
+                'insp-torque-split': `Mag: ${phy.t_mag.toFixed(1)} | Rel: ${phy.t_rel.toFixed(1)} Nm`,
+                'insp-torque-total': phy.t_total.toFixed(1) + " Nm",
+                'insp-power-mech': phy.power_mech.toFixed(0) + " W",
+                'insp-power-stator': phy.power_stator.toFixed(0) + " W",
+                'insp-power-rotor': phy.power_rotor.toFixed(1) + " W",
+                'insp-power-elec-total': phy.power_elec_total.toFixed(0) + " W",
+                'insp-efficiency': `${phy.efficiency.toFixed(1)}% [${phy.operation_mode}]`,
+                'insp-speed-target': sample.speed_target.toFixed(0) + " ERPM",
+                'insp-speed-error': tracking_error.toFixed(0) + " ERPM",
+                'insp-speed-iterm': sample.speed_i_term.toFixed(2) + " A",
+                'insp-ibus': sample.i_bus.toFixed(1) + " A"
+            };
+
+            // Propagate updates to both left-sidebar cards simultaneously
+            ['review', 'analysis'].forEach(tab => {
+                const card = document.getElementById(`card-inspector-${tab}`);
+                if (!card) return;
+
+                Object.keys(updates).forEach(className => {
+                    const el = card.querySelector('.' + className);
+                    if (el) el.innerText = updates[className];
+                });
+
+                // Set warning colors for tracking errors under load
+                const errorEl = card.querySelector('.insp-speed-error');
+                if (errorEl) {
+                    if (Math.abs(tracking_error) > 200.0 && sample.super_state === 4) {
+                        errorEl.style.color = "var(--accent-red)";
+                    } else {
+                        errorEl.style.color = "var(--text-main)";
+                    }
+                }
+            });
         }
 
         // --- Helper Translation Enums ---
@@ -1218,8 +1255,8 @@
                 });
 
                 // Update the Slice readouts inside the Sidebar cards dynamically
-                const sliceMinEl = document.getElementById(`scale-slice-min-${v.name}`);
-                const sliceMaxEl = document.getElementById(`scale-slice-max-${v.name}`);
+                const sliceMinEl = document.getElementById(`review-scale-slice-min-${v.name}`);
+                const sliceMaxEl = document.getElementById(`review-scale-slice-max-${v.name}`);
                 if (sliceMinEl && sliceMaxEl) {
                     sliceMinEl.innerText = minVal !== Infinity ? minVal.toFixed(1) : "-";
                     sliceMaxEl.innerText = maxVal !== Infinity ? maxVal.toFixed(1) : "-";
@@ -1282,86 +1319,121 @@
 
         // --- Generates, updates, or destroys right-sidebar scale cards on-demand ---
         function syncScaleCards() {
-            const container = document.getElementById('active-scales-list');
-            
-            TELEMETRY_LAYOUT.forEach(v => {
-                let card = document.getElementById(`scale-card-${v.name}`);
-                
-                if (v.active) {
-                    if (!card) {
-                        // Set standard safe defaults based on physics domains
-                        if (v.autoScale === undefined) v.autoScale = true;
-                        if (v.manualMin === undefined) {
-                            if (v.name === "rpm") v.manualMin = 0;
-                            else if (v.name.includes("duty") || v.name.includes("pwm")) v.manualMin = 0.0;
-                            else if (v.name.includes("vbus")) v.manualMin = 0.0;
-                            else if (v.name.includes("efficiency")) v.manualMin = 0.0;
-                            else v.manualMin = -50;
-                        }
-                        if (v.manualMax === undefined) {
-                            if (v.name === "rpm") v.manualMax = 6000;
-                            else if (v.name.includes("duty") || v.name.includes("pwm")) v.manualMax = 1.0;
-                            else if (v.name.includes("vbus")) v.manualMax = 20.0;
-                            else if (v.name.includes("efficiency")) v.manualMax = 100.0;
-                            else if (v.name.includes("power")) v.manualMax = 2000;
-                            else v.manualMax = 50;
-                        }
+            ['review', 'analysis'].forEach(tab => {
+                const container = document.getElementById(tab === 'review' ? 'active-scales-list' : 'active-scales-list-analysis');
+                if (!container) return;
 
-                        // Create Card Element
-                        card = document.createElement('div');
-                        card.className = "scale-card";
-                        card.id = `scale-card-${v.name}`;
-                        card.style.borderLeft = `4px solid ${v.color}`;
-                        card.innerHTML = `
-                            <div class="scale-header" style="color: ${v.color};">
-                                <span>● ${v.label}</span>
-                                <label style="display: inline-flex; align-items: center; gap: 3px; cursor: pointer; margin: 0;">
-                                    <input type="checkbox" id="scale-auto-${v.name}" ${v.autoScale ? 'checked' : ''} style="width: auto; margin: 0;"> Auto
-                                </label>
-                            </div>
-                            <div class="scale-row">
-                                <span class="scale-slice-info">Visible: [<span id="scale-slice-min-${v.name}">-</span>, <span id="scale-slice-max-${v.name}">-</span>]</span>
-                            </div>
-                            <div class="scale-inputs">
-                                <div>
-                                    <label>Min</label>
-                                    <input type="number" step="any" id="scale-input-min-${v.name}" value="${v.manualMin}" ${v.autoScale ? 'disabled' : ''}>
+                TELEMETRY_LAYOUT.forEach(v => {
+                    let card = document.getElementById(`${tab}-scale-card-${v.name}`);
+                    
+                    if (v.active) {
+                        if (!card) {
+                            // Safe starting defaults based on variable domain types
+                            if (v.autoScale === undefined) v.autoScale = true;
+                            if (v.manualMin === undefined) {
+                                if (v.name === "rpm") v.manualMin = 0;
+                                else if (v.name.includes("duty") || v.name.includes("pwm")) v.manualMin = 0.0;
+                                else if (v.name.includes("vbus")) v.manualMin = 0.0;
+                                else if (v.name.includes("efficiency")) v.manualMin = 0.0;
+                                else v.manualMin = -50;
+                            }
+                            if (v.manualMax === undefined) {
+                                if (v.name === "rpm") v.manualMax = 6000;
+                                else if (v.name.includes("duty") || v.name.includes("pwm")) v.manualMax = 1.0;
+                                else if (v.name.includes("vbus")) v.manualMax = 16.0;
+                                else if (v.name.includes("efficiency")) v.manualMax = 100.0;
+                                else if (v.name.includes("iterm") || v.name.includes("iq")) v.manualMax = 150.0;
+                                else if (v.name.includes("i_bus")) v.manualMax = 100.0;
+                                else v.manualMax = 50;
+                            }
+
+                            // Generate separate prefixed card
+                            card = document.createElement('div');
+                            card.className = "scale-card";
+                            card.id = `${tab}-scale-card-${v.name}`;
+                            card.style.borderLeft = `4px solid ${v.color}`;
+                            card.innerHTML = `
+                                <div class="scale-header" style="color: ${v.color};">
+                                    <span>● ${v.label}</span>
+                                    <label style="display: inline-flex; align-items: center; gap: 3px; cursor: pointer; margin: 0;">
+                                        <input type="checkbox" id="${tab}-scale-auto-${v.name}" ${v.autoScale ? 'checked' : ''} style="width: auto; margin: 0;"> Auto
+                                    </label>
                                 </div>
-                                <div>
-                                    <label>Max</label>
-                                    <input type="number" step="any" id="scale-input-max-${v.name}" value="${v.manualMax}" ${v.autoScale ? 'disabled' : ''}>
+                                <div class="scale-row">
+                                    <span class="scale-slice-info">Visible: [<span id="${tab}-scale-slice-min-${v.name}">-</span>, <span id="${tab}-scale-slice-max-${v.name}">-</span>]</span>
                                 </div>
-                            </div>
-                        `;
-                        container.appendChild(card);
+                                <div class="scale-inputs">
+                                    <div>
+                                        <label>Min</label>
+                                        <input type="number" step="any" id="${tab}-scale-input-min-${v.name}" value="${v.manualMin}" ${v.autoScale ? 'disabled' : ''}>
+                                    </div>
+                                    <div>
+                                        <label>Max</label>
+                                        <input type="number" step="any" id="${tab}-scale-input-max-${v.name}" value="${v.manualMax}" ${v.autoScale ? 'disabled' : ''}>
+                                    </div>
+                                </div>
+                            `;
+                            container.appendChild(card);
 
-                        // Bind Reactive Scale Input Events
-                        const autoCheck = card.querySelector(`#scale-auto-${v.name}`);
-                        const minInput = card.querySelector(`#scale-input-min-${v.name}`);
-                        const maxInput = card.querySelector(`#scale-input-max-${v.name}`);
+                            // Bind events with mutual synchronization across sidebars
+                            const autoCheck = card.querySelector(`#${tab}-scale-auto-${v.name}`);
+                            const minInput = card.querySelector(`#${tab}-scale-input-min-${v.name}`);
+                            const maxInput = card.querySelector(`#${tab}-scale-input-max-${v.name}`);
 
-                        autoCheck.addEventListener('change', (e) => {
-                            v.autoScale = e.target.checked;
-                            minInput.disabled = v.autoScale;
-                            maxInput.disabled = v.autoScale;
-                            requestAnimationFrame(drawPlots);
-                        });
+                            autoCheck.addEventListener('change', (e) => {
+                                const isChecked = e.target.checked;
+                                v.autoScale = isChecked;
 
-                        minInput.addEventListener('input', (e) => {
-                            v.manualMin = parseFloat(e.target.value) || 0;
-                            requestAnimationFrame(drawPlots);
-                        });
+                                const otherTab = tab === 'review' ? 'analysis' : 'review';
+                                const otherAuto = document.getElementById(`${otherTab}-scale-auto-${v.name}`);
+                                const otherMin = document.getElementById(`${otherTab}-scale-input-min-${v.name}`);
+                                const otherMax = document.getElementById(`${otherTab}-scale-input-max-${v.name}`);
 
-                        maxInput.addEventListener('input', (e) => {
-                            v.manualMax = parseFloat(e.target.value) || 0;
-                            requestAnimationFrame(drawPlots);
-                        });
+                                if (otherAuto) otherAuto.checked = isChecked;
+                                if (otherMin) otherMin.disabled = isChecked;
+                                if (otherMax) otherMax.disabled = isChecked;
+
+                                minInput.disabled = isChecked;
+                                maxInput.disabled = isChecked;
+
+                                triggerActivePlotRedraw();
+                            });
+
+                            minInput.addEventListener('input', (e) => {
+                                const val = parseFloat(e.target.value) || 0;
+                                v.manualMin = val;
+
+                                const otherTab = tab === 'review' ? 'analysis' : 'review';
+                                const otherInput = document.getElementById(`${otherTab}-scale-input-min-${v.name}`);
+                                if (otherInput) otherInput.value = val;
+
+                                triggerActivePlotRedraw();
+                            });
+
+                            maxInput.addEventListener('input', (e) => {
+                                const val = parseFloat(e.target.value) || 0;
+                                v.manualMax = val;
+
+                                const otherTab = tab === 'review' ? 'analysis' : 'review';
+                                const otherInput = document.getElementById(`${otherTab}-scale-input-max-${v.name}`);
+                                if (otherInput) otherInput.value = val;
+
+                                triggerActivePlotRedraw();
+                            });
+                        }
+                    } else {
+                        if (card) card.remove();
                     }
-                } else {
-                    // Destroy card if variable is untoggled
-                    if (card) card.remove();
-                }
+                });
             });
+        }
+
+        function triggerActivePlotRedraw() {
+            if (activeTab === 'review') {
+                requestAnimationFrame(drawPlots);
+            } else if (activeTab === 'analysis') {
+                requestAnimationFrame(drawAnalysisPlots);
+            }
         }
 
         // --- Variable Toggle Creator ---
@@ -1992,6 +2064,14 @@
                     if (val > maxVal) maxVal = val;
                 });
 
+                // Update visible scale labels inside the Sidebar cards (Analysis tab)
+                const sliceMinEl = document.getElementById(`analysis-scale-slice-min-${v.name}`);
+                const sliceMaxEl = document.getElementById(`analysis-scale-slice-max-${v.name}`);
+                if (sliceMinEl && sliceMaxEl) {
+                    sliceMinEl.innerText = minVal !== Infinity ? minVal.toFixed(1) : "-";
+                    sliceMaxEl.innerText = maxVal !== Infinity ? maxVal.toFixed(1) : "-";
+                }
+
                 // Compute scaling limits
                 let plotMin, plotMax;
                 if (v.autoScale !== false) {
@@ -2206,6 +2286,40 @@ ${alerts.join("\n")}
             }
             
             requestAnimationFrame(drawAnalysisPlots); // Slide the vertical blue line in real-time
+        });
+
+        const analysisCanvas = document.getElementById('analysisCanvas');
+        
+        analysisCanvas.addEventListener('mousemove', (e) => {
+            if (selectedEventIndex === -1 || detectedEvents.length === 0) return;
+            const ev = detectedEvents[selectedEventIndex];
+            const totalPoints = ev.endIndex - ev.startIndex;
+            if (totalPoints <= 0) return;
+
+            const rect = analysisCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const hoverPct = x / analysisCanvas.width;
+            let sliderVal = Math.round(hoverPct * totalPoints);
+            sliderVal = Math.max(0, Math.min(totalPoints, sliderVal));
+
+            // Snap the scrubber input slider to match hover cursor position
+            const slider = document.getElementById('time-slider-analysis');
+            slider.value = sliderVal;
+
+            const activeSlice = telemetryData.slice(ev.startIndex, ev.endIndex + 1);
+            const currentSample = activeSlice[sliderVal];
+            if (currentSample) {
+                updateInspector(currentSample); // Dynamic class-based cards update!
+                document.getElementById('active-packet-val-analysis').innerText = currentSample.packet_id;
+                updateInspectingStatus(`[Inspecting Start Pt: ${ev.startIndex + sliderVal}]`, "var(--accent-gold)");
+            }
+
+            requestAnimationFrame(drawAnalysisPlots); // Slides the gold vertical cursor line in real-time
+        });
+
+        analysisCanvas.addEventListener('mouseleave', () => {
+            updateInspectingStatus("[Event View]", "var(--accent-blue)");
+            requestAnimationFrame(drawAnalysisPlots);
         });
 
         (function applyDynamicVersion() {
