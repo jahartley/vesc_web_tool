@@ -501,7 +501,7 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                     <div>
                         <label>Handoff ERPM</label>
-                        <input type="number" id="cfg-handoff-erpm" value="900" step="50">
+                        <input type="number" id="cfg-handoff-erpm" value="1000" step="50">
                     </div>
                     <div>
                         <label>Start Target ERPM</label>
@@ -593,9 +593,10 @@
     </div>
 
     <script>
-        const APP_VERSION = "0.06";
+        const APP_VERSION = "0.07";
         // --- CONFIGURATION & TELEMETRY DEFINITION ---
-        const PACKET_SIZE = 89;
+        const PACKET_SIZE = 101;
+        const NBR_FLOATS = 23;
         const START_MARKER = 0xAA;
         
         // Master Global Configuration Object
@@ -669,6 +670,9 @@
             { name: "duty_max", label: "FOC Duty (Max)", color: "#14532d", active: false },
             { name: "if_min", label: "If Field (Min)", color: "#fdba74", active: false },
             { name: "stator_fw_id", label: "Stator FW Id", color: "#93c5fd", active: false },
+            { name: "speed_target", label: "Speed Target (ERPM)", color: "#0ea5e9", active: false },
+            { name: "speed_i_term", label: "Speed I-Term (A)", color: "#fb7185", active: false },
+            { name: "i_bus", label: "Battery Current (A)", color: "#e11d48", active: true },
 
             // --- "Append on Arrival" Derived Parameters ---
             { name: "flux", label: "λ Flux (mWb)", color: "#fbbf24", active: false },
@@ -780,7 +784,7 @@
 
             // System Electrical Power Expenditures
             const power_rotor = Math.pow(d.if_avg, 2) * CONFIG.field_r_ohms;
-            const power_stator = d.vbus_avg * d.iq_avg * d.duty_avg;
+            const power_stator = d.vbus_avg * d.i_bus;
             const power_elec_total = power_stator + power_rotor;
 
             // System Efficiency Assessment
@@ -1273,7 +1277,7 @@
             }
             lastPacketId = packetId;
 
-            // 2. Build Base Raw Data Sample (Mapping 20 Physical Floats)
+            // 2. Build Base Raw Data Sample (Mapping NBR_FLOATS Physical Floats)
             let offset = 8;
             const sample = {
                 timestamp: Date.now(),
@@ -1284,7 +1288,7 @@
             };
 
             // Unpack physical UART floats from byte indices
-            TELEMETRY_LAYOUT.slice(0, 20).forEach(v => {
+            TELEMETRY_LAYOUT.slice(0, NBR_FLOATS).forEach(v => {
                 sample[v.name] = view.getFloat32(offset, true);
                 offset += 4;
             });
@@ -1379,7 +1383,7 @@
                         ctrl_mode: parseInt(cols[4])
                     };
 
-                    TELEMETRY_LAYOUT.slice(0, 20).forEach((v) => {
+                    TELEMETRY_LAYOUT.slice(0, NBR_FLOATS).forEach((v) => {
                         const csvColIndex = headers.indexOf(v.name);
                         if (csvColIndex !== -1) {
                             sample[v.name] = parseFloat(cols[csvColIndex]);
@@ -1415,13 +1419,16 @@
             totalLostPackets = 0;
             lastPacketId = null;
 
-            // Generate realistic 30-second start & stall test bench waveforms
             const sampleCount = 1500; // 30 seconds @ 50Hz
+            const targetERPM = CONFIG.target_erpm;
             
             for (let i = 0; i < sampleCount; i++) {
                 const t = i / 50.0; // Simulated time in seconds
                 let super_state = 0; // standby
                 let rpm = 0.0;
+                let speed_tgt = 0.0;
+                let speed_iterm = 0.0;
+                let ibus = 0.0;
                 let accel = 0.0;
                 let vbus = 14.2;
                 let iq = 0.0;
@@ -1435,37 +1442,50 @@
                     super_state = 3; // PRE_EXCITE
                     if_curr = t * 1.4; // ramp up field current
                     vbus = 14.2 - 0.2 * t;
+                    ibus = 0.4; // tiny aux bridge draw
                 } else if (t < 7.0) {
                     // Engine Cranking Ramping
                     super_state = 4; // CRANKING
                     ctrl_mode = 1; // CONTROL_MODE_SPEED
                     const startT = t - 2.0;
                     if_curr = 2.8;
-                    rpm = Math.min(4800, startT * 960); // Speed ramps to 4800 ERPM
-                    accel = 960 + Math.sin(t * 30.0) * 150; // Engine torsional shaking
-                    iq = 100 - startT * 10;
-                    duty = Math.min(0.85, 0.1 + startT * 0.15);
+                    
+                    // Speed PID Target and actual lag calculation
+                    speed_tgt = Math.min(targetERPM, startT * (targetERPM / 4.0));
+                    rpm = Math.max(0, speed_tgt - (180.0 + Math.sin(t * 30.0) * 120.0)); // Cylinder compression sags
+                    accel = (targetERPM / 4.0) + Math.sin(t * 30.0) * 150;
+                    
+                    iq = 110 - startT * 10;
+                    duty = Math.min(0.85, 0.15 + startT * 0.14);
+                    ibus = (iq * duty) + 1.5; // active stator draw + rotor excitation
+                    speed_iterm = 10.5 + startT * 3.5;
                     vbus = 11.2 + Math.random() * 0.4; // voltage sag
                 } else if (t < 20.0) {
                     // Alternator charging / Running State
                     super_state = 5; // ALTERNATOR
                     ctrl_mode = 2; // CONTROL_MODE_CURRENT
-                    if_curr = 1.2 + Math.sin(t * 0.5) * 0.4; // optimal loss controller hunting
+                    if_curr = 1.2 + Math.sin(t * 0.5) * 0.4;
                     rpm = 3000 + Math.sin(t * 2.0) * 200; // engine idle
                     accel = Math.sin(t * 2.0) * 40;
-                    iq = -50 - Math.sin(t * 1.5) * 10; // Generating current (negative)
+                    iq = -55.0 - Math.sin(t * 1.5) * 10; // Negative stator generating current
                     duty = 0.45;
-                    vbus = 13.8 + Math.sin(t * 0.5) * 0.2; // charging voltage settling
+                    ibus = (iq * duty); // Negative battery current charging!
+                    vbus = 13.8 + Math.sin(t * 0.5) * 0.2;
                 } else if (t < 25.0) {
                     // Drag down near a Stall catch transient
                     super_state = 6; // STALL_CATCH
                     ctrl_mode = 1; // speed control catch mode
                     const stallT = t - 20.0;
-                    if_curr = 2.8; // Max Field for max torque catch
+                    if_curr = 2.8; 
+                    
+                    speed_tgt = CONFIG.stall_erpm;
                     rpm = Math.max(800, 3000 - stallT * 600); // speed drops!
-                    accel = -600 + Math.sin(t * 50.0) * 350; // violent engine shaking!
-                    iq = Math.min(150.0, stallT * 40); // Maximum current dump to catch block!
+                    accel = -600 + Math.sin(t * 50.0) * 350; 
+                    
+                    iq = Math.min(150.0, stallT * 42); // Maximum current dump to catch block!
                     duty = 0.75;
+                    ibus = (iq * duty) + 1.5;
+                    speed_iterm = 22.0; // Saturated I-Term pushing limits
                     vbus = 11.8 - stallT * 0.3; // battery sag under heavy catch
                 } else {
                     // Post-stall / Coast down to OFF
@@ -1485,11 +1505,11 @@
                     timestamp: Date.now() - (sampleCount - i) * 20,
                     packet_id: i,
                     super_state,
-                    mc_state: rpm > 100 ? 2 : 0, // RUNNING or OFF
+                    mc_state: rpm > 100 ? 2 : 0, 
                     ctrl_mode,
                     rpm: rpm + noise() * 10,
                     accel_avg: accel,
-                    accel_mad: Math.abs(accel * 0.15) + Math.random() * 20, // shake severity
+                    accel_mad: Math.abs(accel * 0.15) + Math.random() * 20, 
                     iq_avg: iq + noise() * 5,
                     iq_mad: Math.abs(iq * 0.08) + Math.random() * 2,
                     iq_target: iq,
@@ -1506,7 +1526,12 @@
                     duty_avg: duty,
                     duty_max: duty + 0.05,
                     if_min: if_curr - 0.1,
-                    stator_fw_id: 0.0
+                    stator_fw_id: 0.0,
+                    
+                    // Aligned Tuning fields
+                    speed_target: speed_tgt,
+                    speed_i_term: speed_iterm,
+                    i_bus: ibus + noise() * 2
                 };
 
                 // Append derived physics to the simulated sample on arrival
