@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WRSM Diagnostics Workstation v2.0</title>
+    <title>WRSM Diagnostics Workstation</title>
     <style>
         :root {
             --bg-primary: #0f172a;
@@ -593,6 +593,7 @@
     </div>
 
     <script>
+        const APP_VERSION = "0.06";
         // --- CONFIGURATION & TELEMETRY DEFINITION ---
         const PACKET_SIZE = 89;
         const START_MARKER = 0xAA;
@@ -1545,6 +1546,17 @@
         termInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') btnSend.click();
         });
+
+        (function applyDynamicVersion() {
+            // Update browser tab/window title
+            document.title = `WRSM Diagnostics Workstation v${APP_VERSION}`;
+            
+            // Locate the main header and append the version number
+            const mainHeader = document.querySelector('header h1');
+            if (mainHeader) {
+                mainHeader.innerText = `WRSM Diagnostics Workstation v${APP_VERSION}`;
+            }
+        })();
     </script>
 </body>
 </html>
