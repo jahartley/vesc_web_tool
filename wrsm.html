@@ -917,10 +917,10 @@
             document.getElementById('insp-mc-ctrl').innerText = `MC: ${getMCStateName(sample.mc_state)} | Ctrl: ${getCtrlModeName(sample.ctrl_mode)}`;
             document.getElementById('insp-if').innerText = sample.if_avg.toFixed(2) + " A";
 
-            // Derived lookups & physics calculations
-            const phy = calculatePhysics(sample);
+            // Derived lookups & physics calculations - Unified Config Engine
+            const phy = runPhysicsMath(sample);
             
-            document.getElementById('insp-lookup-flux').innerText = (phy.flux * 1000).toFixed(2) + " mWb";
+            document.getElementById('insp-lookup-flux').innerText = phy.flux.toFixed(2) + " mWb";
             document.getElementById('insp-lookup-ldlq').innerText = `Ld: ${phy.ld.toFixed(1)} uH | Lq: ${phy.lq.toFixed(1)} uH`;
             document.getElementById('insp-lookup-saliency').innerText = phy.ld_lq_diff.toFixed(1) + " uH";
 
@@ -930,7 +930,7 @@
             document.getElementById('insp-power-stator').innerText = phy.power_stator.toFixed(0) + " W";
             document.getElementById('insp-power-rotor').innerText = phy.power_rotor.toFixed(1) + " W";
             document.getElementById('insp-power-elec-total').innerText = phy.power_elec_total.toFixed(0) + " W";
-            document.getElementById('insp-efficiency').innerText = `${phy.efficiency.toFixed(1)}% [${phy.operationMode}]`;
+            document.getElementById('insp-efficiency').innerText = `${phy.efficiency.toFixed(1)}% [${phy.operation_mode}]`;
         }
 
         // --- Helper Translation Enums ---
@@ -1359,6 +1359,7 @@
                 const lines = text.split("\n");
                 if (lines.length < 2) return;
 
+                // Grab headers and strip whitespaces
                 const headers = lines.trim().split(",");
                 const loadedSamples = [];
 
@@ -1371,18 +1372,22 @@
 
                     const sample = {
                         timestamp: parseInt(cols),
-                        packet_id: parseInt(cols[9]),
-                        super_state: parseInt(cols[10]),
-                        mc_state: parseInt(cols[11]),
-                        ctrl_mode: parseInt(cols[8])
+                        packet_id: parseInt(cols[1]),
+                        super_state: parseInt(cols[2]),
+                        mc_state: parseInt(cols[3]),
+                        ctrl_mode: parseInt(cols[4])
                     };
 
-                    TELEMETRY_LAYOUT.forEach((v) => {
+                    TELEMETRY_LAYOUT.slice(0, 20).forEach((v) => {
                         const csvColIndex = headers.indexOf(v.name);
                         if (csvColIndex !== -1) {
                             sample[v.name] = parseFloat(cols[csvColIndex]);
                         }
                     });
+
+                    // Recalculate derived parameters to guarantee full dataset completeness
+                    const phy = runPhysicsMath(sample);
+                    Object.assign(sample, phy);
 
                     loadedSamples.push(sample);
                 }
@@ -1475,7 +1480,7 @@
                 // Append minor high-frequency noise elements to float variables
                 const noise = () => (Math.random() - 0.5) * 0.05;
 
-                telemetryData.push({
+                const sample = {
                     timestamp: Date.now() - (sampleCount - i) * 20,
                     packet_id: i,
                     super_state,
@@ -1501,7 +1506,13 @@
                     duty_max: duty + 0.05,
                     if_min: if_curr - 0.1,
                     stator_fw_id: 0.0
-                });
+                };
+
+                // Append derived physics to the simulated sample on arrival
+                const phy = runPhysicsMath(sample);
+                Object.assign(sample, phy);
+
+                telemetryData.push(sample);
             }
 
             totalReceivedPackets = sampleCount;
