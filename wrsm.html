@@ -670,7 +670,7 @@
     </div>
 
     <script>
-        const APP_VERSION = "0.11";
+        const APP_VERSION = "0.12";
         // --- CONFIGURATION & TELEMETRY DEFINITION ---
         const PACKET_SIZE = 101;
         const NBR_FLOATS = 23;
@@ -1096,7 +1096,6 @@
         canvas.addEventListener('mousemove', (e) => {
             const rect = canvas.getBoundingClientRect();
             mouseX = e.clientX - rect.left;
-            
             const maxPoints = getWindowSizePoints();
             const count = telemetryData.length;
             if (count === 0) return;
@@ -1104,19 +1103,16 @@
             let endIndex = liveFollowMode ? count : parseInt(timeSlider.value) + 1;
             let startIndex = maxPoints === "all" ? 0 : Math.max(0, endIndex - parseInt(maxPoints));
             let viewLength = endIndex - startIndex;
-
             if (viewLength <= 0) return;
 
             // Map mouseX directly to index in activeSlice
             const hoverPct = mouseX / canvas.width;
             let sliceIdx = Math.round(hoverPct * (viewLength - 1));
             sliceIdx = Math.max(0, Math.min(viewLength - 1, sliceIdx));
-            
             selectedIndex = startIndex + sliceIdx;
-            
+
+            // Synchronously update status across both tabs
             updateInspectingStatus(`[Inspecting Pt: ${selectedIndex}]`, "var(--accent-gold)");
-            document.getElementById('inspecting-status').style.color = "var(--accent-gold)";
-            
             updateTimelineSliders();
             requestAnimationFrame(drawPlots);
         });
@@ -1124,9 +1120,12 @@
         canvas.addEventListener('mouseleave', () => {
             mouseX = null;
             selectedIndex = null;
-            updateInspectingStatus(liveFollowMode ? "[Live]" : "[Paused]", liveFollowMode ? "var(--accent-green)" : "var(--accent-blue)");
-            document.getElementById('inspecting-status').style.color = liveFollowMode ? "var(--accent-green)" : "var(--accent-blue)";
-            
+
+            // Synchronously reset status across both tabs
+            updateInspectingStatus(
+                liveFollowMode ? "[Live]" : "[Paused]", 
+                liveFollowMode ? "var(--accent-green)" : "var(--accent-blue)"
+            );
             updateTimelineSliders();
             requestAnimationFrame(drawPlots);
         });
