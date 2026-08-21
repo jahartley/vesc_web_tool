@@ -658,7 +658,7 @@
     </div>
 
     <script>
-        const APP_VERSION = "0.24";
+        const APP_VERSION = "0.25";
         const PACKET_SIZE = 101;
         const START_MARKER = 0xAA;
 
@@ -2165,17 +2165,16 @@ ${alerts.join("\n")}
         function parseBinaryPacket(bytes) {
             const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
             
-            // --- MATCH SHIFTED VESC PAYLOAD INDEX OFFSETS ---
-            // bytes[ 0 ] = 170 (Command ID)
-            // bytes[ 1 ] = 0xAA (start_marker)
-            // bytes[ 2..5 ] = packetId (uint32)
-            // bytes[ 6 ] = superState (uint8)
-            // bytes[ 7 ] = mcState (uint8)
-            // bytes[ 8 ] = ctrlMode (uint8)
-            const packetId   = view.getUint32(2, true); // index 2, 3, 4, 5
-            const superState = view.getUint8(6);
-            const mcState    = view.getUint8(7);
-            const ctrlMode   = view.getUint8(8);
+            // --- REALIGNED VESC PAYLOAD INDEX OFFSETS (1-Byte shift corrected) ---
+            // bytes[ 0 ] = 170 (Command ID & start_marker sharing index 0)
+            // bytes[ 1..4 ] = packetId (uint32)
+            // bytes[ 5 ] = superState (uint8)
+            // bytes[ 6 ] = mcState (uint8)
+            // bytes[ 7 ] = ctrlMode (uint8)
+            const packetId   = view.getUint32(1, true); // FIXED: Start at index 1
+            const superState = view.getUint8(5);        // FIXED: Start at index 5
+            const mcState    = view.getUint8(6);        // FIXED: Start at index 6
+            const ctrlMode   = view.getUint8(7);        // FIXED: Start at index 7
             
             totalReceivedPackets++;
             
@@ -2187,8 +2186,8 @@ ${alerts.join("\n")}
             }
             lastPacketId = packetId;
             
-            // Floats start at offset 9 (immediately following ctrlMode at index 8)
-            let offset = 9; 
+            // Floats start at offset 8 (immediately following ctrlMode at index 7)
+            let offset = 8; // FIXED: Start floats at index 8
             const sample = {
                 timestamp: Date.now(),
                 packet_id: packetId,
@@ -2202,7 +2201,7 @@ ${alerts.join("\n")}
                 sample[ v.name ] = view.getFloat32(offset, true);
                 offset += 4;
             });
-            
+
             const phy = runPhysicsMath(sample);
             Object.assign(sample, phy);
             telemetryData.push(sample);
