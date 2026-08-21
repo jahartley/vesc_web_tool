@@ -658,7 +658,7 @@
     </div>
 
     <script>
-        const APP_VERSION = "0.18";
+        const APP_VERSION = "0.19";
         const PACKET_SIZE = 101;
         const START_MARKER = 0xAA;
 
@@ -828,6 +828,7 @@
         // --- GLOBAL WORKSPACE STATE ---
         let port = null;
         let reader = null;
+        let readLoopPromise = null;
         let rxBuffer = new Uint8Array(0);
         let telemetryData = [];             // Single Master Array of Telemetry Frames
         let lastPacketId = null;
@@ -2018,21 +2019,45 @@ ${alerts.join("\n")}
                 termInput.disabled = false;
                 btnSend.disabled = false;
 
-                readLoop();
+                // Store the loop promise so we can wait for it during teardown
+                readLoopPromise = readLoop();
             } catch (err) {
                 consoleDisplay.innerText += `\nConnection Failed: ${err.message}\n`;
+                consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
             }
         }
 
         async function disconnect() {
+            // 1. Cancel the active reader to force 'reader.read()' to resolve with done = true
             if (reader) {
-                await reader.cancel();
-                reader = null;
+                try {
+                    await reader.cancel();
+                } catch (err) {
+                    console.warn("Reader cancel error:", err);
+                }
             }
+
+            // 2. Await the readLoop's exit so we know all locks are officially released
+            if (readLoopPromise) {
+                try {
+                    await readLoopPromise;
+                } catch (err) {
+                    console.warn("Read loop exit error:", err);
+                }
+                readLoopPromise = null;
+            }
+
+            // 3. Now that the stream is completely unlocked, close the physical port
             if (port) {
-                await port.close();
+                try {
+                    await port.close();
+                } catch (err) {
+                    consoleDisplay.innerText += `\nDisconnect Error: ${err.message}\n`;
+                }
                 port = null;
             }
+
+            // Reset UI States
             btnConnect.innerText = "Connect Port";
             btnConnect.className = "";
             streamIndicator.innerText = "● OFFLINE";
@@ -2061,7 +2086,10 @@ ${alerts.join("\n")}
                     consoleDisplay.innerText += `\nRead Error: ${err.message}\n`;
                     break;
                 } finally {
-                    if (reader) reader.releaseLock();
+                    if (reader) {
+                        reader.releaseLock();
+                        reader = null; // Clear reference
+                    }
                 }
             }
         }
