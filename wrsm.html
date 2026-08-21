@@ -658,7 +658,7 @@
     </div>
 
     <script>
-        const APP_VERSION = "0.19";
+        const APP_VERSION = "0.20";
         const PACKET_SIZE = 101;
         const START_MARKER = 0xAA;
 
@@ -876,10 +876,9 @@
         }
 
         // --- Pack command text into a valid VESC short packet and write to Web Serial ---
-        async function sendSerialCommand(cmdStr) {
+            async function sendSerialCommand(cmdStr) {
             if (!port || !port.writable) {
-                consoleDisplay.innerText += `\nError: Serial port not connected or not writable.\n`;
-                consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
+                console.error("Error: Serial port not connected or not writable.");
                 return;
             }
             try {
@@ -890,12 +889,12 @@
                 const payloadLen = 1 + cmdBytes.length; // 1 byte for command ID + string bytes
                 const packet = new Uint8Array(3 + cmdBytes.length + 3); // Start frame (2) + Command (1) + String + CRC (2) + Stop (1)
                 
-                packet = 0x02; // VESC Start Byte (Short Packet)
-                packet[5] = payloadLen; // Total payload length (Command ID + String length)
-                packet[6] = 20; // COMM_TERMINAL_CMD packet type
-                packet.set(cmdBytes, 3); // Copy command ASCII characters into the payload window
+                packet[0] = 0x02;        // VESC Start Byte (Short Packet) - FIXED INDEX
+                packet[1] = payloadLen;  // Total payload length - FIXED INDEX
+                packet[2] = 20;          // COMM_TERMINAL_CMD packet type - FIXED INDEX
+                packet.set(cmdBytes, 3); // Copy command ASCII characters starting at index 3
                 
-                // Calculate CRC-16 CCITT over the payload portion only (from packet[6] to packet[2 + payloadLen])
+                // Calculate CRC-16 CCITT over the payload portion only (from index 2 to index 2 + payloadLen)
                 const payload = packet.subarray(2, 2 + payloadLen);
                 const crc = crc16(payload);
                 
@@ -908,8 +907,8 @@
                 await writer.write(packet);
                 writer.releaseLock();
             } catch (err) {
-                consoleDisplay.innerText += `\nSend Error: ${err.message}\n`;
-                consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
+                // Local errors go to DevTools console instead of the UI terminal box
+                console.error("Send Error:", err);
             }
         }
 
@@ -2019,45 +2018,39 @@ ${alerts.join("\n")}
                 termInput.disabled = false;
                 btnSend.disabled = false;
 
-                // Store the loop promise so we can wait for it during teardown
                 readLoopPromise = readLoop();
             } catch (err) {
-                consoleDisplay.innerText += `\nConnection Failed: ${err.message}\n`;
-                consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
+                console.error("Connection Failed:", err);
             }
         }
 
         async function disconnect() {
-            // 1. Cancel the active reader to force 'reader.read()' to resolve with done = true
             if (reader) {
                 try {
                     await reader.cancel();
                 } catch (err) {
-                    console.warn("Reader cancel error:", err);
+                    console.error("Reader cancel error:", err);
                 }
             }
 
-            // 2. Await the readLoop's exit so we know all locks are officially released
             if (readLoopPromise) {
                 try {
                     await readLoopPromise;
                 } catch (err) {
-                    console.warn("Read loop exit error:", err);
+                    console.error("Read loop exit error:", err);
                 }
                 readLoopPromise = null;
             }
 
-            // 3. Now that the stream is completely unlocked, close the physical port
             if (port) {
                 try {
                     await port.close();
                 } catch (err) {
-                    consoleDisplay.innerText += `\nDisconnect Error: ${err.message}\n`;
+                    console.error("Disconnect Error:", err);
                 }
                 port = null;
             }
 
-            // Reset UI States
             btnConnect.innerText = "Connect Port";
             btnConnect.className = "";
             streamIndicator.innerText = "● OFFLINE";
@@ -2083,12 +2076,12 @@ ${alerts.join("\n")}
                         processBuffer();
                     }
                 } catch (err) {
-                    consoleDisplay.innerText += `\nRead Error: ${err.message}\n`;
+                    console.error("Read Error:", err);
                     break;
                 } finally {
                     if (reader) {
                         reader.releaseLock();
-                        reader = null; // Clear reference
+                        reader = null;
                     }
                 }
             }
