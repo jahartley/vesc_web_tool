@@ -658,7 +658,7 @@
     </div>
 
     <script>
-        const APP_VERSION = "0.23";
+        const APP_VERSION = "0.24";
         const PACKET_SIZE = 101;
         const START_MARKER = 0xAA;
 
@@ -2097,55 +2097,39 @@ ${alerts.join("\n")}
         function processBuffer() {
             let i = 0;
             while (i < rxBuffer.length) {
-                // --- A. PARSE WRSM TELEMETRY PACKET (START_MARKER = 0xAA) ---
-                if (rxBuffer[i] === START_MARKER) {
-                    if (i + PACKET_SIZE <= rxBuffer.length) {
-                        const packetBytes = rxBuffer.slice(i, i + PACKET_SIZE);
-                        
-                        let checksum = 0;
-                        for (let c = 0; c < PACKET_SIZE - 1; c++) {
-                            checksum ^= packetBytes[c];
-                        }
-
-                        if (checksum === packetBytes[PACKET_SIZE - 1]) {
-                            parseBinaryPacket(packetBytes);
-                            i += PACKET_SIZE;
-                            continue;
-                        }
-                    } else {
-                        // Incomplete telemetry packet at end of stream buffer, wait for next read chunk
-                        break;
-                    }
-                }
                 
-                // --- B. PARSE VESC COMM_PRINT PACKET (Start Byte = 0x02) ---
-                else if (rxBuffer[i] === 0x02) {
+                // --- A. PARSE VESC PACKET FRAMES (Start Byte = 0x02) ---
+                if (rxBuffer[ i ] === 0x02) {
                     if (i + 1 < rxBuffer.length) {
-                        const payloadLen = rxBuffer[i + 1];
+                        const payloadLen = rxBuffer[ i + 1 ];
                         const packetLen = 1 + 1 + payloadLen + 2 + 1; // 0x02, len, payload, crc16 (2), 0x03
                         
                         if (i + packetLen <= rxBuffer.length) {
                             const packetBytes = rxBuffer.slice(i, i + packetLen);
                             
-                            // Validate matching stop byte
-                            if (packetBytes[packetLen - 1] === 0x03) {
+                            // Validate stop byte alignment
+                            if (packetBytes[ packetLen - 1 ] === 0x03) {
                                 const payload = packetBytes.subarray(2, 2 + payloadLen);
                                 const crcComputed = crc16(payload);
-                                const crcReceived = (packetBytes[packetLen - 3] << 8) | packetBytes[packetLen - 2];
+                                const crcReceived = (packetBytes[ packetLen - 3 ] << 8) | packetBytes[ packetLen - 2 ];
                                 
                                 if (crcComputed === crcReceived) {
-                                    const commandId = payload[0]; // FIXED: Access the scalar byte value!
-                                    if (commandId === 21) { // COMM_PRINT ID
-                                        // Extract ASCII bytes of the printed string (skip the ID byte)
+                                    const commandId = payload[ 0 ]; // Extract the scalar VESC command ID
+                                    
+                                    // --- CASE 1: UNPACK LIVE WRSM TELEMETRY (ID = 170 / 0xAA) ---
+                                    if (commandId === 170) {
+                                        // Passes payload directly (index 0 is ID, index 1 is start_marker, index 2 is packet_id...)
+                                        parseBinaryPacket(payload); 
+                                    }
+                                    // --- CASE 2: UNPACK STANDARD TEXT PRINT FEEDBACK (ID = 21 / COMM_PRINT) ---
+                                    else if (commandId === 21) {
                                         const stringBytes = payload.subarray(1);
                                         const decoder = new TextDecoder();
-                                        
-                                        // Decode and normalize CRLF/CR to LF for clean browser rendering
                                         const printStr = decoder.decode(stringBytes)
                                                                 .replace(/\r\n/g, "\n")
                                                                 .replace(/\r/g, "\n");
                                         
-                                        consoleDisplay.textContent += printStr; // FIXED: textContent is fast & preserves newlines
+                                        consoleDisplay.textContent += printStr;
                                         consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
                                     }
                                     i += packetLen;
@@ -2153,22 +2137,22 @@ ${alerts.join("\n")}
                                 }
                             }
                         } else {
-                            // Incomplete VESC packet frame, wait for remaining bytes
+                            // Incomplete VESC frame, wait for remaining bytes
                             break;
                         }
                     } else {
-                        // Not enough bytes to evaluate length of packet frame
+                        // Not enough bytes to resolve length descriptor
                         break;
                     }
                 }
                 
-                // --- C. FALLBACK: print printable ASCII and COMMON CONTROL characters ---
-                const charCode = rxBuffer[i];
+                // --- B. FALLBACK: Direct terminal characters (Prints startup boot lines) ---
+                const charCode = rxBuffer[ i ];
                 if (charCode === 10) { // LF (Line Feed)
-                    consoleDisplay.textContent += "\n"; // Append newline
+                    consoleDisplay.textContent += "\n";
                     consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
                 } else if (charCode === 13) {
-                    // Ignore carriage returns in fallback to prevent duplicate lines/spacing
+                    // Ignore CR in fallback
                 } else if (charCode >= 32 && charCode <= 126) {
                     consoleDisplay.textContent += String.fromCharCode(charCode);
                     consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
@@ -2180,12 +2164,21 @@ ${alerts.join("\n")}
 
         function parseBinaryPacket(bytes) {
             const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-            const packetId = view.getUint32(1, true);
-            const superState = view.getUint8(5);
-            const mcState = view.getUint8(6);
-            const ctrlMode = view.getUint8(7);
-
+            
+            // --- MATCH SHIFTED VESC PAYLOAD INDEX OFFSETS ---
+            // bytes[ 0 ] = 170 (Command ID)
+            // bytes[ 1 ] = 0xAA (start_marker)
+            // bytes[ 2..5 ] = packetId (uint32)
+            // bytes[ 6 ] = superState (uint8)
+            // bytes[ 7 ] = mcState (uint8)
+            // bytes[ 8 ] = ctrlMode (uint8)
+            const packetId   = view.getUint32(2, true); // index 2, 3, 4, 5
+            const superState = view.getUint8(6);
+            const mcState    = view.getUint8(7);
+            const ctrlMode   = view.getUint8(8);
+            
             totalReceivedPackets++;
+            
             if (lastPacketId !== null) {
                 const expectedId = (lastPacketId + 1) >>> 0;
                 if (packetId !== expectedId && packetId > expectedId) {
@@ -2193,8 +2186,9 @@ ${alerts.join("\n")}
                 }
             }
             lastPacketId = packetId;
-
-            let offset = 8;
+            
+            // Floats start at offset 9 (immediately following ctrlMode at index 8)
+            let offset = 9; 
             const sample = {
                 timestamp: Date.now(),
                 packet_id: packetId,
@@ -2202,33 +2196,33 @@ ${alerts.join("\n")}
                 mc_state: mcState,
                 ctrl_mode: ctrlMode
             };
-
+            
+            // Unpack the 23 diagnostic float parameters
             TELEMETRY_LAYOUT.slice(0, 23).forEach(v => {
-                sample[v.name] = view.getFloat32(offset, true);
+                sample[ v.name ] = view.getFloat32(offset, true);
                 offset += 4;
             });
-
+            
             const phy = runPhysicsMath(sample);
             Object.assign(sample, phy);
-
             telemetryData.push(sample);
-
-            const stateEl = document.getElementById('val-state');
-            const rpmEl = document.getElementById('val-rpm');
-            const vbusEl = document.getElementById('val-vbus');
-            const lossEl = document.getElementById('val-loss');
-
-            if (stateEl) stateEl.innerText = sample.super_state;
-            if (rpmEl) rpmEl.innerText = Math.round(sample.rpm);
-            if (vbusEl) vbusEl.innerText = sample.vbus_avg.toFixed(1) + "V";
             
+            // Update Live Status HUD Elements
+            const stateEl = document.getElementById('val-state');
+            const rpmEl   = document.getElementById('val-rpm');
+            const vbusEl  = document.getElementById('val-vbus');
+            const lossEl  = document.getElementById('val-loss');
+            
+            if (stateEl) stateEl.innerText = getSuperStateName(sample.super_state);
+            if (rpmEl)   rpmEl.innerText   = Math.round(sample.rpm);
+            if (vbusEl)  vbusEl.innerText  = sample.vbus_avg.toFixed(1) + "V";
             if (lossEl) {
                 const totalSched = totalReceivedPackets + totalLostPackets;
                 const lossRate = totalSched > 0 ? (totalLostPackets / totalSched) * 100 : 0.0;
                 lossEl.innerText = lossRate.toFixed(1) + "%";
                 lossEl.style.color = (lossRate > 1.0) ? "var(--accent-red)" : "var(--accent-green)";
             }
-
+            
             updateTimelineSliders();
             requestAnimationFrame(drawPlots);
         }
