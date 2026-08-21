@@ -858,6 +858,60 @@
         const sliderMaxLabel = document.getElementById('slider-max');
         const activePacketLabel = document.getElementById('active-packet-val');
 
+        // --- VESC-Compliant CRC-16 Checksum Calculator (CCITT 0x1021) ---
+        function crc16(data) {
+            let crc = 0x0000;
+            for (let i = 0; i < data.length; i++) {
+                crc ^= (data[i] << 8);
+                for (let j = 0; j < 8; j++) {
+                    if (crc & 0x8000) {
+                        crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+                    } else {
+                        crc = (crc << 1) & 0xFFFF;
+                    }
+                }
+            }
+            return crc;
+        }
+
+        // --- Pack command text into a valid VESC short packet and write to Web Serial ---
+        async function sendSerialCommand(cmdStr) {
+            if (!port || !port.writable) {
+                consoleDisplay.innerText += `\nError: Serial port not connected or not writable.\n`;
+                consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
+                return;
+            }
+            try {
+                const encoder = new TextEncoder();
+                const cmdBytes = encoder.encode(cmdStr);
+                
+                // Short Packet Format: [0x02, payloadLen, COMM_TERMINAL_CMD (20), ...cmdBytes, crc_high, crc_low, 0x03]
+                const payloadLen = 1 + cmdBytes.length; // 1 byte for command ID + string bytes
+                const packet = new Uint8Array(3 + cmdBytes.length + 3); // Start frame (2) + Command (1) + String + CRC (2) + Stop (1)
+                
+                packet = 0x02; // VESC Start Byte (Short Packet)
+                packet[5] = payloadLen; // Total payload length (Command ID + String length)
+                packet[6] = 20; // COMM_TERMINAL_CMD packet type
+                packet.set(cmdBytes, 3); // Copy command ASCII characters into the payload window
+                
+                // Calculate CRC-16 CCITT over the payload portion only (from packet[6] to packet[2 + payloadLen])
+                const payload = packet.subarray(2, 2 + payloadLen);
+                const crc = crc16(payload);
+                
+                packet[packet.length - 3] = (crc >> 8) & 0xFF; // CRC High
+                packet[packet.length - 2] = crc & 0xFF;        // CRC Low
+                packet[packet.length - 1] = 0x03;              // Stop Byte
+                
+                // Write packet to Web Serial
+                const writer = port.writable.getWriter();
+                await writer.write(packet);
+                writer.releaseLock();
+            } catch (err) {
+                consoleDisplay.innerText += `\nSend Error: ${err.message}\n`;
+                consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
+            }
+        }
+
         // --- Ortega Lookup Math ---
         function wrsmLookup(ifVal) {
             if (ifVal <= 0.0) ifVal = 0.0;
@@ -2015,6 +2069,7 @@ ${alerts.join("\n")}
         function processBuffer() {
             let i = 0;
             while (i < rxBuffer.length) {
+                // --- A. PARSE WRSM TELEMETRY PACKET (START_MARKER = 0xAA) ---
                 if (rxBuffer[i] === START_MARKER) {
                     if (i + PACKET_SIZE <= rxBuffer.length) {
                         const packetBytes = rxBuffer.slice(i, i + PACKET_SIZE);
@@ -2030,11 +2085,57 @@ ${alerts.join("\n")}
                             continue;
                         }
                     } else {
+                        // Incomplete telemetry packet at end of stream buffer, wait for next read chunk
                         break;
                     }
                 }
-                consoleDisplay.innerText += String.fromCharCode(rxBuffer[i]);
-                consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
+                
+                // --- B. PARSE VESC COMM_PRINT PACKET (Start Byte = 0x02) ---
+                else if (rxBuffer[i] === 0x02) {
+                    if (i + 1 < rxBuffer.length) {
+                        const payloadLen = rxBuffer[i + 1];
+                        const packetLen = 1 + 1 + payloadLen + 2 + 1; // 0x02, len, payload, crc16 (2), 0x03
+                        
+                        if (i + packetLen <= rxBuffer.length) {
+                            const packetBytes = rxBuffer.slice(i, i + packetLen);
+                            
+                            // Validate matching stop byte
+                            if (packetBytes[packetLen - 1] === 0x03) {
+                                const payload = packetBytes.subarray(2, 2 + payloadLen);
+                                const crcComputed = crc16(payload);
+                                const crcReceived = (packetBytes[packetLen - 3] << 8) | packetBytes[packetLen - 2];
+                                
+                                if (crcComputed === crcReceived) {
+                                    const commandId = payload;
+                                    if (commandId === 21) { // COMM_PRINT ID
+                                        // Extract ASCII bytes of the printed string (skip the ID byte at payload)
+                                        const stringBytes = payload.subarray(1);
+                                        const decoder = new TextDecoder();
+                                        const printStr = decoder.decode(stringBytes);
+                                        
+                                        consoleDisplay.innerText += printStr;
+                                        consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
+                                    }
+                                    i += packetLen;
+                                    continue;
+                                }
+                            }
+                        } else {
+                            // Incomplete VESC packet frame, wait for remaining bytes
+                            break;
+                        }
+                    } else {
+                        // Not enough bytes to evaluate length of packet frame
+                        break;
+                    }
+                }
+                
+                // --- C. FALLBACK: print printable ASCII and COMMON CONTROL characters ---
+                const charCode = rxBuffer[i];
+                if (charCode === 10 || charCode === 13 || (charCode >= 32 && charCode <= 126)) {
+                    consoleDisplay.innerText += String.fromCharCode(charCode);
+                    consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
+                }
                 i++;
             }
             rxBuffer = rxBuffer.slice(i);
@@ -2385,16 +2486,17 @@ ${alerts.join("\n")}
         });
 
 
-        // --- Interactive Command Terminal Input Hooks ---
+        // --- Interactive VESC Command Terminal Input Hooks (Transmitting) ---
         const btnSendTerminal = document.getElementById('btn-send');
         const termInputBox = document.getElementById('terminal-input');
 
-        btnSendTerminal.addEventListener('click', () => {
-            const cmd = termInputBox.value;
-            if (cmd.trim()) {
+        btnSendTerminal.addEventListener('click', async () => {
+            const cmd = termInputBox.value.trim();
+            if (cmd) {
                 consoleDisplay.innerText += `> ${cmd}\n`;
                 consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
                 termInputBox.value = "";
+                await sendSerialCommand(cmd); // Executes the packet write operation
             }
         });
 
