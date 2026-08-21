@@ -658,7 +658,7 @@
     </div>
 
     <script>
-        const APP_VERSION = "0.21";
+        const APP_VERSION = "0.22";
         const PACKET_SIZE = 101;
         const START_MARKER = 0xAA;
 
@@ -876,11 +876,12 @@
         }
 
         // --- Pack command text into a valid VESC short packet and write to Web Serial ---
-            async function sendSerialCommand(cmdStr) {
+        async function sendSerialCommand(cmdStr) {
             if (!port || !port.writable) {
                 console.error("Error: Serial port not connected or not writable.");
                 return;
             }
+            let writer = null;
             try {
                 const encoder = new TextEncoder();
                 const cmdBytes = encoder.encode(cmdStr);
@@ -889,9 +890,9 @@
                 const payloadLen = 1 + cmdBytes.length; // 1 byte for command ID + string bytes
                 const packet = new Uint8Array(3 + cmdBytes.length + 3); // Start frame (2) + Command (1) + String + CRC (2) + Stop (1)
                 
-                packet[0] = 0x02;        // VESC Start Byte (Short Packet) - FIXED INDEX
-                packet[1] = payloadLen;  // Total payload length - FIXED INDEX
-                packet[2] = 20;          // COMM_TERMINAL_CMD packet type - FIXED INDEX
+                packet[0] = 0x02;        // VESC Start Byte (Short Packet)
+                packet[1] = payloadLen;  // Total payload length
+                packet[2] = 20;          // COMM_TERMINAL_CMD packet type
                 packet.set(cmdBytes, 3); // Copy command ASCII characters starting at index 3
                 
                 // Calculate CRC-16 CCITT over the payload portion only (from index 2 to index 2 + payloadLen)
@@ -902,15 +903,19 @@
                 packet[packet.length - 2] = crc & 0xFF;        // CRC Low
                 packet[packet.length - 1] = 0x03;              // Stop Byte
                 
-                // Write packet to Web Serial
-                const writer = port.writable.getWriter();
+                // Acquire lock and write to port
+                writer = port.writable.getWriter();
                 await writer.write(packet);
-                writer.releaseLock();
             } catch (err) {
-                // Local errors go to DevTools console instead of the UI terminal box
                 console.error("Send Error:", err);
+            } finally {
+                // Guarantee that the writer lock is always released, even if a write or encoding step fails!
+                if (writer) {
+                    writer.releaseLock();
+                }
             }
         }
+
 
         // --- Ortega Lookup Math ---
         function wrsmLookup(ifVal) {
@@ -2066,7 +2071,9 @@ ${alerts.join("\n")}
                     reader = port.readable.getReader();
                     while (true) {
                         const { value, done } = await reader.read();
-                        if (done) break;
+                        if (done) {
+                            return; // Terminate the ENTIRE read loop (runs finally and exits function)
+                        }
 
                         const newBuffer = new Uint8Array(rxBuffer.length + value.length);
                         newBuffer.set(rxBuffer, 0);
@@ -2127,14 +2134,18 @@ ${alerts.join("\n")}
                                 const crcReceived = (packetBytes[packetLen - 3] << 8) | packetBytes[packetLen - 2];
                                 
                                 if (crcComputed === crcReceived) {
-                                    const commandId = payload[0];
+                                    const commandId = payload; // FIXED: Access the scalar byte value!
                                     if (commandId === 21) { // COMM_PRINT ID
-                                        // Extract ASCII bytes of the printed string (skip the ID byte at payload)
+                                        // Extract ASCII bytes of the printed string (skip the ID byte)
                                         const stringBytes = payload.subarray(1);
                                         const decoder = new TextDecoder();
-                                        const printStr = decoder.decode(stringBytes);
                                         
-                                        consoleDisplay.innerText += printStr;
+                                        // Decode and normalize CRLF/CR to LF for clean browser rendering
+                                        const printStr = decoder.decode(stringBytes)
+                                                                .replace(/\r\n/g, "\n")
+                                                                .replace(/\r/g, "\n");
+                                        
+                                        consoleDisplay.textContent += printStr; // FIXED: textContent is fast & preserves newlines
                                         consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
                                     }
                                     i += packetLen;
@@ -2153,8 +2164,13 @@ ${alerts.join("\n")}
                 
                 // --- C. FALLBACK: print printable ASCII and COMMON CONTROL characters ---
                 const charCode = rxBuffer[i];
-                if (charCode === 10 || charCode === 13 || (charCode >= 32 && charCode <= 126)) {
-                    consoleDisplay.innerText += String.fromCharCode(charCode);
+                if (charCode === 10) { // LF (Line Feed)
+                    consoleDisplay.textContent += "\n"; // Append newline
+                    consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
+                } else if (charCode === 13) {
+                    // Ignore carriage returns in fallback to prevent duplicate lines/spacing
+                } else if (charCode >= 32 && charCode <= 126) {
+                    consoleDisplay.textContent += String.fromCharCode(charCode);
                     consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
                 }
                 i++;
