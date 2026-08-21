@@ -3,3 +3,6 @@ My vesc fork has gone well beyond the parameters of normal vesc, but also does n
 
 ## Link
 [Web Telemetry tool](https://jahartley.github.io/vesc_web_tool/wrsm.html)
+
+## Sample Data
+My first bench test sample data can be downloaded from my VESC [WRSM fork documentation folder](https://github.com/jahartley/bldc/tree/feature/wrsm/documentation). The WRSM_Diagnostic_Log_2026-08-21T06-46-42-263Z.csv style file names are uploadable to the github hosted tool (link above) and start analysis can be run. 
