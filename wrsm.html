@@ -454,6 +454,9 @@
         <button class="tab-btn active" id="tab-btn-review">Review Data</button>
         <button class="tab-btn" id="tab-btn-analysis">Start Analysis</button>
         <button class="tab-btn" id="tab-btn-settings">System Settings</button>
+        <!-- STREAM CONTROL BUTTONS -->
+        <button class="tab-btn" id="btn-start-stream" style="border: 1px solid var(--accent-green); color: var(--accent-green); font-size: 0.75rem; margin-left: auto;" disabled>Start Stream</button>
+        <button class="tab-btn" id="btn-stop-stream" style="border: 1px solid var(--accent-red); color: var(--accent-red); font-size: 0.75rem;" disabled>Stop Stream</button>
     </div>
 
     <!-- ==================== MAIN DASHBOARD (Shared Canvas/Scalers Layout) ==================== -->
@@ -659,7 +662,7 @@
     </div>
 
     <script>
-        const APP_VERSION = "0.25";
+        const APP_VERSION = "0.26";
         const PACKET_SIZE = 101;
         const START_MARKER = 0xAA;
 
@@ -2023,6 +2026,8 @@ ${alerts.join("\n")}
                 
                 termInput.disabled = false;
                 btnSend.disabled = false;
+                btnStartStream.disabled = false;
+                btnStopStream.disabled = false;
 
                 readLoopPromise = readLoop();
             } catch (err) {
@@ -2064,6 +2069,8 @@ ${alerts.join("\n")}
             
             termInput.disabled = true;
             btnSend.disabled = true;
+            btnStartStream.disabled = true;
+            btnStopStream.disabled = true;
         }
 
         async function readLoop() {
@@ -2533,6 +2540,22 @@ ${alerts.join("\n")}
 
         termInputBox.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') btnSendTerminal.click();
+        });
+
+        // --- Interactive WRSM Stream Control Buttons ---
+        const btnStartStream = document.getElementById('btn-start-stream');
+        const btnStopStream = document.getElementById('btn-stop-stream');
+
+        btnStartStream.addEventListener('click', async () => {
+            consoleDisplay.innerText += `> wrsm_stream on\n`;
+            consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
+            await sendSerialCommand('wrsm_stream on');
+        });
+
+        btnStopStream.addEventListener('click', async () => {
+            consoleDisplay.innerText += `> wrsm_stream off\n`;
+            consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
+            await sendSerialCommand('wrsm_stream off');
         });
 
         // --- Dynamic Version Propagator ---
