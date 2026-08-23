@@ -2198,7 +2198,7 @@ ${alerts.join("\n")}
                                     else if (commandId === 21) {
                                         const stringBytes = payload.subarray(1);
                                         const decoder = new TextDecoder();
-                                        const printStr = decoder.decode(stringBytes)
+                                        let printStr = decoder.decode(stringBytes)
                                             .replace(/\r\n/g, "\n")
                                             .replace(/\r/g, "\n");
                                         if (printStr && !printStr.endsWith('\n')) {
