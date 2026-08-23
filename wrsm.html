@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -18,7 +19,11 @@
             --border-color: #334155;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -39,8 +44,16 @@
             border-bottom: 1px solid var(--border-color);
         }
 
-        h1 { font-size: 1.35rem; font-weight: 700; color: var(--text-main); }
-        .tagline { font-size: 0.8rem; color: var(--text-muted); }
+        h1 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .tagline {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
 
         /* Tab Layout & Navigation */
         .tab-navigation {
@@ -201,9 +214,16 @@
             cursor: not-allowed;
         }
 
-        label { font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 2px; }
+        label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: block;
+            margin-bottom: 2px;
+        }
 
-        select, input, button {
+        select,
+        input,
+        button {
             width: 100%;
             padding: 6px 10px;
             background-color: var(--bg-primary);
@@ -222,8 +242,13 @@
             transition: opacity 0.1s;
         }
 
-        button:hover { opacity: 0.9; }
-        button.disconnect { background-color: var(--accent-red); }
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button.disconnect {
+            background-color: var(--accent-red);
+        }
 
         /* Physics Inspector */
         .inspector-section {
@@ -253,8 +278,14 @@
             font-family: monospace;
         }
 
-        .inspector-label { color: var(--text-muted); }
-        .inspector-val { font-weight: bold; color: var(--text-main); }
+        .inspector-label {
+            color: var(--text-muted);
+        }
+
+        .inspector-val {
+            font-weight: bold;
+            color: var(--text-main);
+        }
 
         /* Center Plotter & Controllers */
         .plot-container {
@@ -310,7 +341,10 @@
             white-space: nowrap;
         }
 
-        .live-toggle input { width: auto; cursor: pointer; }
+        .live-toggle input {
+            width: auto;
+            cursor: pointer;
+        }
 
         .window-selector {
             display: flex;
@@ -319,7 +353,10 @@
             white-space: nowrap;
         }
 
-        .window-selector select { width: 100px; padding: 4px; }
+        .window-selector select {
+            width: 100px;
+            padding: 4px;
+        }
 
         .slider-container {
             flex-grow: 1;
@@ -372,12 +409,13 @@
             white-space: nowrap;
         }
 
-        .selector-tag input { width: auto; cursor: pointer; }
+        .selector-tag input {
+            width: auto;
+            cursor: pointer;
+        }
 
         /* Terminals & Post-Run Panels */
         .terminal-container {
-            grid-column: 2;
-            grid-row: 2;
             background-color: var(--bg-secondary);
             border: 1px solid var(--border-color);
             border-radius: 8px;
@@ -406,30 +444,30 @@
             gap: 8px;
         }
 
-        .console-input-row input { flex-grow: 1; }
-        .console-input-row button { width: auto; padding: 0 15px; }
+        .console-input-row input {
+            flex-grow: 1;
+        }
+
+        .console-input-row button {
+            width: auto;
+            padding: 0 15px;
+        }
 
         /* Settings Tab */
         .tab-content-settings {
             display: none;
             flex-grow: 1;
-            padding: 20px 0;
-            overflow-y: auto;
-            justify-content: center;
+            margin-top: 12px;
             min-height: 0;
+            height: 0;
+            /* Allows parent flexbox scaling */
         }
 
         .tab-content-settings.active {
-            display: flex;
-        }
-
-        .settings-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 16px;
-            max-width: 900px;
-            width: 100%;
-            height: fit-content;
+            grid-template-columns: 350px 1fr;
+            gap: 12px;
+            height: 100%;
         }
 
         /* Core Visibility Utility */
@@ -437,8 +475,10 @@
             display: none !important;
         }
     </style>
-    <script defer src="https://umami.jahartley.com/script.js" data-website-id="605f6e7c-7e1c-40ce-a827-21250806139a"></script>
+    <script defer src="https://umami.jahartley.com/script.js"
+        data-website-id="605f6e7c-7e1c-40ce-a827-21250806139a"></script>
 </head>
+
 <body>
 
     <header>
@@ -455,8 +495,12 @@
         <button class="tab-btn" id="tab-btn-analysis">Start Analysis</button>
         <button class="tab-btn" id="tab-btn-settings">System Settings</button>
         <!-- STREAM CONTROL BUTTONS -->
-        <button class="tab-btn" id="btn-start-stream" style="border: 1px solid var(--accent-green); color: var(--accent-green); font-size: 0.75rem; margin-left: auto;" disabled>Start Stream</button>
-        <button class="tab-btn" id="btn-stop-stream" style="border: 1px solid var(--accent-red); color: var(--accent-red); font-size: 0.75rem;" disabled>Stop Stream</button>
+        <button class="tab-btn" id="btn-start-stream"
+            style="border: 1px solid var(--accent-green); color: var(--accent-green); font-size: 0.75rem; margin-left: auto;"
+            disabled>Start Stream</button>
+        <button class="tab-btn" id="btn-stop-stream"
+            style="border: 1px solid var(--accent-red); color: var(--accent-red); font-size: 0.75rem;" disabled>Stop
+            Stream</button>
     </div>
 
     <!-- ==================== MAIN DASHBOARD (Shared Canvas/Scalers Layout) ==================== -->
@@ -467,13 +511,15 @@
             <div class="card" id="card-inspector">
                 <!-- Injected dynamically by JS -->
             </div>
-            
+
             <!-- File Operations (Visible on Review, Hidden on Analysis) -->
             <div class="card" id="card-file-ops">
                 <div class="card-title">File & Test Operations</div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                    <button id="btn-save" style="background-color: var(--accent-green); font-size: 0.75rem;">Export CSV</button>
-                    <button id="btn-simulate" style="background-color: var(--accent-gold); font-size: 0.75rem;">Simulate Run</button>
+                    <button id="btn-save" style="background-color: var(--accent-green); font-size: 0.75rem;">Export
+                        CSV</button>
+                    <button id="btn-simulate" style="background-color: var(--accent-gold); font-size: 0.75rem;">Simulate
+                        Run</button>
                 </div>
                 <div>
                     <label>Load Diagnostic Log</label>
@@ -484,7 +530,8 @@
             <!-- Analysis Events (Visible on Analysis, Hidden on Review) -->
             <div class="card hidden" id="card-analysis-events">
                 <div class="card-title">Analysis Events</div>
-                <button id="btn-perform-analysis" style="background-color: var(--accent-gold); margin-bottom: 8px;">Perform Start Analysis</button>
+                <button id="btn-perform-analysis"
+                    style="background-color: var(--accent-gold); margin-bottom: 8px;">Perform Start Analysis</button>
                 <div>
                     <label>Detected Cranking Starts</label>
                     <select id="select-analysis-event" disabled>
@@ -498,12 +545,13 @@
         <div class="plot-container">
             <div class="card-title" style="margin-bottom: 8px;">
                 High-Fidelity Telemetry Canvas
-                <span id="inspect-hint" style="font-size: 0.7rem; color: var(--text-muted); text-transform: none;">Hover canvas to inspect values</span>
+                <span id="inspect-hint" style="font-size: 0.7rem; color: var(--text-muted); text-transform: none;">Hover
+                    canvas to inspect values</span>
             </div>
             <div class="canvas-wrapper">
                 <canvas id="telemetryCanvas"></canvas>
             </div>
-            
+
             <!-- Unified Playback Control Bar -->
             <div class="playback-control-bar">
                 <label class="live-toggle" id="container-live-toggle">
@@ -535,21 +583,12 @@
         </div>
 
         <!-- CENTER LOWER PANEL -->
-        <!-- Interactive Command Console -->
-        <div class="terminal-container" id="card-terminal">
-            <div class="card-title">Interactive VESC Command Terminal</div>
-            <div class="console-out" id="console-display">--- Command Terminal Log Offline ---</div>
-            <div class="console-input-row">
-                <input type="text" id="terminal-input" placeholder="Type firmware command (e.g., wrsm_stream on)..." disabled>
-                <button id="btn-send" disabled>Send</button>
-            </div>
-        </div>
-
         <!-- Cranking Diagnostics report -->
-        <div class="terminal-container hidden" id="card-crank-report">
+        <div class="terminal-container hidden" id="card-crank-report" style="grid-column: 2; grid-row: 2;">
             <div class="card-title">Cranking Phase Report</div>
-            <div class="console-out" id="analysis-report-display" style="color: var(--text-main); font-family: monospace;">
---- Load a log and click 'Perform Start Analysis' to isolate cranking phases ---
+            <div class="console-out" id="analysis-report-display"
+                style="color: var(--text-main); font-family: monospace;">
+                --- Load a log and click 'Perform Start Analysis' to isolate cranking phases ---
             </div>
         </div>
 
@@ -561,7 +600,8 @@
                     Toggle chart variables below to manage their scaling limits.
                 </div>
             </div>
-            <div id="active-scales-list" style="display: flex; flex-direction: column; gap: 10px; flex-grow: 1; overflow-y: auto;">
+            <div id="active-scales-list"
+                style="display: flex; flex-direction: column; gap: 10px; flex-grow: 1; overflow-y: auto;">
                 <!-- Single scale cards list -->
             </div>
         </div>
@@ -569,7 +609,8 @@
 
     <!-- ==================== TAB 3: SYSTEM SETTINGS ==================== -->
     <div class="tab-content-settings" id="panel-settings">
-        <div class="settings-grid">
+        <!-- LEFT SIDEBAR FOR SETTINGS -->
+        <div class="sidebar" style="grid-row: 1; overflow-y: auto;">
             <!-- Connection Card -->
             <div class="card">
                 <div class="card-title">Serial Connection</div>
@@ -589,7 +630,8 @@
             <div class="card">
                 <div class="card-title">
                     WRSM Settings
-                    <button id="btn-apply-settings" style="width: auto; padding: 2px 12px; font-size: 0.75rem; background-color: var(--accent-blue);">Apply</button>
+                    <button id="btn-apply-settings"
+                        style="width: auto; padding: 2px 12px; font-size: 0.75rem; background-color: var(--accent-blue);">Apply</button>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                     <div>
@@ -623,7 +665,9 @@
                 </div>
 
                 <div class="settings-divider" style="border-top: 1px solid #1e293b; margin: 10px 0;"></div>
-                <div class="settings-section-title" style="font-size: 0.75rem; font-weight: bold; color: var(--accent-gold); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">Starting Speed PID</div>
+                <div class="settings-section-title"
+                    style="font-size: 0.75rem; font-weight: bold; color: var(--accent-gold); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">
+                    Starting Speed PID</div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                     <div>
                         <label>Speed Kp</label>
@@ -646,7 +690,9 @@
                 </div>
 
                 <div class="settings-divider" style="border-top: 1px solid #1e293b; margin: 10px 0;"></div>
-                <div class="settings-section-title" style="font-size: 0.75rem; font-weight: bold; color: var(--accent-blue); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">Stall Catch Speed PID</div>
+                <div class="settings-section-title"
+                    style="font-size: 0.75rem; font-weight: bold; color: var(--accent-blue); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">
+                    Stall Catch Speed PID</div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                     <div>
                         <label>Stall Kp</label>
@@ -657,6 +703,19 @@
                         <input type="number" id="cfg-stall-ki" value="0.080" step="0.005" min="0.0">
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- RIGHT FULL-HEIGHT TERMINAL -->
+        <div class="terminal-container" id="card-terminal"
+            style="grid-column: 2; height: 100%; display: flex; flex-direction: column; margin-top: 0;">
+            <div class="card-title">Interactive VESC Command Terminal</div>
+            <div class="console-out" id="console-display" style="flex-grow: 1; min-height: 0;">--- Command Terminal Log
+                Offline ---</div>
+            <div class="console-input-row">
+                <input type="text" id="terminal-input" placeholder="Type firmware command (e.g., wrsm_stream on)..."
+                    disabled>
+                <button id="btn-send" disabled>Send</button>
             </div>
         </div>
     </div>
@@ -889,24 +948,24 @@
             try {
                 const encoder = new TextEncoder();
                 const cmdBytes = encoder.encode(cmdStr);
-                
+
                 // Short Packet Format: [0x02, payloadLen, COMM_TERMINAL_CMD (20), ...cmdBytes, crc_high, crc_low, 0x03]
                 const payloadLen = 1 + cmdBytes.length; // 1 byte for command ID + string bytes
                 const packet = new Uint8Array(3 + cmdBytes.length + 3); // Start frame (2) + Command (1) + String + CRC (2) + Stop (1)
-                
+
                 packet[0] = 0x02;        // VESC Start Byte (Short Packet)
                 packet[1] = payloadLen;  // Total payload length
                 packet[2] = 20;          // COMM_TERMINAL_CMD packet type
                 packet.set(cmdBytes, 3); // Copy command ASCII characters starting at index 3
-                
+
                 // Calculate CRC-16 CCITT over the payload portion only (from index 2 to index 2 + payloadLen)
                 const payload = packet.subarray(2, 2 + payloadLen);
                 const crc = crc16(payload);
-                
+
                 packet[packet.length - 3] = (crc >> 8) & 0xFF; // CRC High
                 packet[packet.length - 2] = crc & 0xFF;        // CRC Low
                 packet[packet.length - 1] = 0x03;              // Stop Byte
-                
+
                 // Acquire lock and write to port
                 writer = port.writable.getWriter();
                 await writer.write(packet);
@@ -947,7 +1006,7 @@
             const lookup = wrsmLookup(d.if_avg);
             const flux_wb = lookup.flux;
             const ldiff_h = lookup.ld_lq_diff * 1e-6;
-            
+
             // FOC Electromechanical Equations
             const t_mag = 1.5 * CONFIG.pole_pairs * flux_wb * d.iq_avg;
             const t_rel = -1.5 * CONFIG.pole_pairs * ldiff_h * d.id_avg * d.iq_avg;
@@ -992,20 +1051,20 @@
         }
 
         function applyConfigSettings() {
-            CONFIG.pole_pairs   = parseFloat(document.getElementById('cfg-poles').value) || 8.0;
+            CONFIG.pole_pairs = parseFloat(document.getElementById('cfg-poles').value) || 8.0;
             CONFIG.field_r_ohms = parseFloat(document.getElementById('cfg-rfield').value) || 5.60;
             CONFIG.handoff_erpm = parseFloat(document.getElementById('cfg-handoff-erpm').value) || 1000.0;
-            CONFIG.target_erpm  = parseFloat(document.getElementById('cfg-target-erpm').value) || 4800.0;
-            CONFIG.stall_erpm   = parseFloat(document.getElementById('cfg-stall-erpm').value) || 2000.0;
-            CONFIG.stall_accel  = parseFloat(document.getElementById('cfg-stall-accel').value) || -1000.0;
+            CONFIG.target_erpm = parseFloat(document.getElementById('cfg-target-erpm').value) || 4800.0;
+            CONFIG.stall_erpm = parseFloat(document.getElementById('cfg-stall-erpm').value) || 2000.0;
+            CONFIG.stall_accel = parseFloat(document.getElementById('cfg-stall-accel').value) || -1000.0;
 
             // Sync PID adjustments
-            CONFIG.s_pid_kp        = parseFloat(document.getElementById('cfg-pid-kp').value) || 0.10;
-            CONFIG.s_pid_ki        = parseFloat(document.getElementById('cfg-pid-ki').value) || 0.040;
-            CONFIG.s_pid_kd        = parseFloat(document.getElementById('cfg-pid-kd').value) || 0.0003;
+            CONFIG.s_pid_kp = parseFloat(document.getElementById('cfg-pid-kp').value) || 0.10;
+            CONFIG.s_pid_ki = parseFloat(document.getElementById('cfg-pid-ki').value) || 0.040;
+            CONFIG.s_pid_kd = parseFloat(document.getElementById('cfg-pid-kd').value) || 0.0003;
             CONFIG.s_pid_kd_filter = parseFloat(document.getElementById('cfg-pid-kd-filter').value) || 0.20;
-            CONFIG.stall_kp        = parseFloat(document.getElementById('cfg-stall-kp').value) || 0.15;
-            CONFIG.stall_ki        = parseFloat(document.getElementById('cfg-stall-ki').value) || 0.080;
+            CONFIG.stall_kp = parseFloat(document.getElementById('cfg-stall-kp').value) || 0.15;
+            CONFIG.stall_ki = parseFloat(document.getElementById('cfg-stall-ki').value) || 0.080;
 
             consoleDisplay.innerText += `--- Settings Applied: PP=${CONFIG.pole_pairs}, Rfield=${CONFIG.field_r_ohms}Ω ---\n`;
             consoleDisplay.innerText += `    Start PID : Kp=${CONFIG.s_pid_kp.toFixed(4)}, Ki=${CONFIG.s_pid_ki.toFixed(3)}\n`;
@@ -1048,10 +1107,10 @@
 
                 dashboard.classList.remove('hidden');
                 settingsPanel.classList.remove('active');
-
+                const plotContainer = document.querySelector('.plot-container');
                 const cardFileOps = document.getElementById('card-file-ops');
                 const cardAnalysisEvents = document.getElementById('card-analysis-events');
-                const cardTerminal = document.getElementById('card-terminal');
+                //const cardTerminal = document.getElementById('card-terminal');
                 const cardCrankReport = document.getElementById('card-crank-report');
                 const liveToggleContainer = document.getElementById('container-live-toggle');
 
@@ -1062,6 +1121,8 @@
                     cardTerminal.classList.remove('hidden');
                     cardCrankReport.classList.add('hidden');
                     liveToggleContainer.classList.remove('hidden');
+                    // Widescreen review - plot container spans both rows
+                    plotContainer.style.gridRow = '1 / span 2';
 
                     updateTimelineSliders();
                     requestAnimationFrame(drawPlots);
@@ -1069,12 +1130,16 @@
                     btnAnalysis.classList.add('active');
                     cardFileOps.classList.add('hidden');
                     cardAnalysisEvents.classList.remove('hidden');
-                    cardTerminal.classList.add('hidden');
+                    //cardTerminal.classList.add('hidden');
                     cardCrankReport.classList.remove('hidden');
                     liveToggleContainer.classList.add('hidden');
 
                     liveFollowMode = false;
                     liveToggle.checked = false;
+                    // Double row analysis - report spans lower row
+                    plotContainer.style.gridRow = '1';
+                    cardCrankReport.style.gridRow = '2';
+                    cardCrankReport.style.gridColumn = '2';
 
                     if (selectedEventIndex !== -1 && detectedEvents.length > 0) {
                         loadAnalysisEvent(selectedEventIndex);
@@ -1401,37 +1466,37 @@
 
                 if (activeItems.length > 0) {
                     const lineX = ((activeLineIdx - startIndex) / visibleRange) * w;
-                    
+
                     // Overlay HUD dimensions
                     const boxWidth = 220;
                     const rowHeight = 16;
                     const headerHeight = 22;
                     const boxHeight = headerHeight + (activeItems.length * rowHeight) + 12;
-                    
+
                     // Position HUD near cursor, shifting left if we run out of screen space
                     let boxX = lineX + 15;
                     if (boxX + boxWidth > w) {
                         boxX = lineX - boxWidth - 15;
                     }
-                    
+
                     let boxY = 15; // Kept near the top of the canvas
-                    
+
                     // Semi-transparent Slate Background with accent border matching the active cursor
                     ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
                     ctx.strokeStyle = (activeHoverIdx !== null) ? "var(--accent-gold)" : "var(--accent-blue)";
                     ctx.lineWidth = 1.5;
-                    
+
                     ctx.beginPath();
                     ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 6);
                     ctx.fill();
                     ctx.stroke();
-                    
+
                     // HUD Title (Packet Index)
                     ctx.fillStyle = "#94a3b8";
                     ctx.font = "bold 10px sans-serif";
                     ctx.textAlign = "left";
                     ctx.fillText(`INSPECTING PT: ${sample.packet_id}`, boxX + 10, boxY + 16);
-                    
+
                     // Separator
                     ctx.strokeStyle = "#334155";
                     ctx.lineWidth = 1;
@@ -1439,13 +1504,13 @@
                     ctx.moveTo(boxX + 10, boxY + 24);
                     ctx.lineTo(boxX + boxWidth - 10, boxY + 24);
                     ctx.stroke();
-                    
+
                     // Print each active metric in the HUD
                     let currentY = boxY + 38;
                     activeItems.forEach(v => {
                         const rawVal = sample[v.name];
                         let formattedVal = "-";
-                        
+
                         if (rawVal !== undefined && rawVal !== null) {
                             // Match proper units for a polished UX
                             if (v.name === "rpm" || v.name === "speed_target") {
@@ -1470,25 +1535,25 @@
                                 formattedVal = rawVal.toFixed(2);
                             }
                         }
-                        
+
                         // Trace color-dot indicator
                         ctx.fillStyle = v.color;
                         ctx.beginPath();
                         ctx.arc(boxX + 14, currentY - 3, 3.5, 0, 2 * Math.PI);
                         ctx.fill();
-                        
+
                         // Variable label (cleanly stripping standard units to avoid redundant units display)
                         ctx.fillStyle = "#cbd5e1";
                         ctx.font = "10px monospace";
                         ctx.fillText(v.label.split(" (")[0], boxX + 24, currentY);
-                        
+
                         // Formatted value
                         ctx.fillStyle = "#ffffff";
                         ctx.font = "bold 10px monospace";
                         ctx.textAlign = "right";
                         ctx.fillText(formattedVal, boxX + boxWidth - 10, currentY);
                         ctx.textAlign = "left"; // reset alignment
-                        
+
                         currentY += rowHeight;
                     });
                 }
@@ -1502,7 +1567,7 @@
 
             TELEMETRY_LAYOUT.forEach(v => {
                 let card = document.getElementById(`scale-card-${v.name}`);
-                
+
                 if (v.active) {
                     if (!card) {
                         if (v.autoScale === undefined) v.autoScale = true;
@@ -1594,7 +1659,7 @@
             if (activeTab === 'review') {
                 endIndex = liveFollowMode ? count : parseInt(timeSlider.value) + 1;
                 startIndex = maxPoints === "all" ? 0 : Math.max(0, endIndex - parseInt(maxPoints));
-                
+
                 const viewLength = endIndex - startIndex;
                 let sliceIdx = Math.round(hoverPct * (viewLength - 1));
                 sliceIdx = Math.max(0, Math.min(viewLength - 1, sliceIdx));
@@ -1645,7 +1710,7 @@
             selectedAnalysisIndex = null;
 
             updateInspectingStatus(
-                liveFollowMode ? "[Live]" : "[Paused]", 
+                liveFollowMode ? "[Live]" : "[Paused]",
                 liveFollowMode ? "var(--accent-green)" : "var(--accent-blue)"
             );
 
@@ -1820,7 +1885,7 @@
             };
 
             // --- STEP 3: EXTRACT STAGE-SPECIFIC METRICS ---
-            
+
             // 1. Open-Loop Breakaway Stats
             const ol_duration = openLoopSlice.length * 20; // 50Hz = 20ms/sample
             const ol_peak_iq = getAbsMax(openLoopSlice, "iq_avg");
@@ -1865,12 +1930,12 @@
             // ===================================================================
             const KP = CONFIG.s_pid_kp;   // Active user-defined proportional speed gain
             const IMAX = 300.0;           // VESC hardware maximum current limit
-            
+
             // Audit 1: Startup Pre-Injection Offset Verification
-            const theoretical_offset = CONFIG.handoff_erpm > 0 
+            const theoretical_offset = CONFIG.handoff_erpm > 0
                 ? (100.0 / (KP * 0.05 * IMAX)) // target_iq / (kp * 0.05 * max_current)
                 : 0;
-            
+
             let actual_start_target = crankingSlice.length > 0 ? crankingSlice[0].speed_target : 0;
             let offset_error = Math.abs(actual_start_target - theoretical_offset);
 
@@ -1890,7 +1955,7 @@
             rampSlice.forEach(d => {
                 const speed_error = d.speed_target - d.rpm;
                 // Normalised proportional torque current matching foc_math.c:
-                const iq_p = speed_error * KP * 0.05 * IMAX; 
+                const iq_p = speed_error * KP * 0.05 * IMAX;
                 sum_iq_p += Math.abs(iq_p);
                 sum_iq_i += Math.abs(d.speed_i_term);
             });
@@ -2023,7 +2088,7 @@ ${alerts.join("\n")}
                 btnConnect.className = "disconnect";
                 streamIndicator.innerText = "● LIVE";
                 streamIndicator.style.color = "var(--accent-green)";
-                
+
                 termInput.disabled = false;
                 btnSend.disabled = false;
                 btnStartStream.disabled = false;
@@ -2066,7 +2131,7 @@ ${alerts.join("\n")}
             btnConnect.className = "";
             streamIndicator.innerText = "● OFFLINE";
             streamIndicator.style.color = "var(--text-muted)";
-            
+
             termInput.disabled = true;
             btnSend.disabled = true;
             btnStartStream.disabled = true;
@@ -2105,38 +2170,40 @@ ${alerts.join("\n")}
         function processBuffer() {
             let i = 0;
             while (i < rxBuffer.length) {
-                
+
                 // --- A. PARSE VESC PACKET FRAMES (Start Byte = 0x02) ---
-                if (rxBuffer[ i ] === 0x02) {
+                if (rxBuffer[i] === 0x02) {
                     if (i + 1 < rxBuffer.length) {
-                        const payloadLen = rxBuffer[ i + 1 ];
+                        const payloadLen = rxBuffer[i + 1];
                         const packetLen = 1 + 1 + payloadLen + 2 + 1; // 0x02, len, payload, crc16 (2), 0x03
-                        
+
                         if (i + packetLen <= rxBuffer.length) {
                             const packetBytes = rxBuffer.slice(i, i + packetLen);
-                            
+
                             // Validate stop byte alignment
-                            if (packetBytes[ packetLen - 1 ] === 0x03) {
+                            if (packetBytes[packetLen - 1] === 0x03) {
                                 const payload = packetBytes.subarray(2, 2 + payloadLen);
                                 const crcComputed = crc16(payload);
-                                const crcReceived = (packetBytes[ packetLen - 3 ] << 8) | packetBytes[ packetLen - 2 ];
-                                
+                                const crcReceived = (packetBytes[packetLen - 3] << 8) | packetBytes[packetLen - 2];
+
                                 if (crcComputed === crcReceived) {
-                                    const commandId = payload[ 0 ]; // Extract the scalar VESC command ID
-                                    
+                                    const commandId = payload[0]; // Extract the scalar VESC command ID
+
                                     // --- CASE 1: UNPACK LIVE WRSM TELEMETRY (ID = 170 / 0xAA) ---
                                     if (commandId === 170) {
                                         // Passes payload directly (index 0 is ID, index 1 is start_marker, index 2 is packet_id...)
-                                        parseBinaryPacket(payload); 
+                                        parseBinaryPacket(payload);
                                     }
                                     // --- CASE 2: UNPACK STANDARD TEXT PRINT FEEDBACK (ID = 21 / COMM_PRINT) ---
                                     else if (commandId === 21) {
                                         const stringBytes = payload.subarray(1);
                                         const decoder = new TextDecoder();
                                         const printStr = decoder.decode(stringBytes)
-                                                                .replace(/\r\n/g, "\n")
-                                                                .replace(/\r/g, "\n");
-                                        
+                                            .replace(/\r\n/g, "\n")
+                                            .replace(/\r/g, "\n");
+                                        if (printStr && !printStr.endsWith('\n')) {
+                                            printStr += '\n';
+                                        }
                                         consoleDisplay.textContent += printStr;
                                         consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
                                     }
@@ -2153,9 +2220,9 @@ ${alerts.join("\n")}
                         break;
                     }
                 }
-                
+
                 // --- B. FALLBACK: Direct terminal characters (Prints startup boot lines) ---
-                const charCode = rxBuffer[ i ];
+                const charCode = rxBuffer[i];
                 if (charCode === 10) { // LF (Line Feed)
                     consoleDisplay.textContent += "\n";
                     consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
@@ -2172,20 +2239,20 @@ ${alerts.join("\n")}
 
         function parseBinaryPacket(bytes) {
             const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-            
+
             // --- REALIGNED VESC PAYLOAD INDEX OFFSETS (1-Byte shift corrected) ---
             // bytes[ 0 ] = 170 (Command ID & start_marker sharing index 0)
             // bytes[ 1..4 ] = packetId (uint32)
             // bytes[ 5 ] = superState (uint8)
             // bytes[ 6 ] = mcState (uint8)
             // bytes[ 7 ] = ctrlMode (uint8)
-            const packetId   = view.getUint32(1, true); // FIXED: Start at index 1
+            const packetId = view.getUint32(1, true); // FIXED: Start at index 1
             const superState = view.getUint8(5);        // FIXED: Start at index 5
-            const mcState    = view.getUint8(6);        // FIXED: Start at index 6
-            const ctrlMode   = view.getUint8(7);        // FIXED: Start at index 7
-            
+            const mcState = view.getUint8(6);        // FIXED: Start at index 6
+            const ctrlMode = view.getUint8(7);        // FIXED: Start at index 7
+
             totalReceivedPackets++;
-            
+
             if (lastPacketId !== null) {
                 const expectedId = (lastPacketId + 1) >>> 0;
                 if (packetId !== expectedId && packetId > expectedId) {
@@ -2193,7 +2260,7 @@ ${alerts.join("\n")}
                 }
             }
             lastPacketId = packetId;
-            
+
             // Floats start at offset 8 (immediately following ctrlMode at index 7)
             let offset = 8; // FIXED: Start floats at index 8
             const sample = {
@@ -2203,33 +2270,33 @@ ${alerts.join("\n")}
                 mc_state: mcState,
                 ctrl_mode: ctrlMode
             };
-            
+
             // Unpack the 23 diagnostic float parameters
             TELEMETRY_LAYOUT.slice(0, 23).forEach(v => {
-                sample[ v.name ] = view.getFloat32(offset, true);
+                sample[v.name] = view.getFloat32(offset, true);
                 offset += 4;
             });
 
             const phy = runPhysicsMath(sample);
             Object.assign(sample, phy);
             telemetryData.push(sample);
-            
+
             // Update Live Status HUD Elements
             const stateEl = document.getElementById('val-state');
-            const rpmEl   = document.getElementById('val-rpm');
-            const vbusEl  = document.getElementById('val-vbus');
-            const lossEl  = document.getElementById('val-loss');
-            
+            const rpmEl = document.getElementById('val-rpm');
+            const vbusEl = document.getElementById('val-vbus');
+            const lossEl = document.getElementById('val-loss');
+
             if (stateEl) stateEl.innerText = getSuperStateName(sample.super_state);
-            if (rpmEl)   rpmEl.innerText   = Math.round(sample.rpm);
-            if (vbusEl)  vbusEl.innerText  = sample.vbus_avg.toFixed(1) + "V";
+            if (rpmEl) rpmEl.innerText = Math.round(sample.rpm);
+            if (vbusEl) vbusEl.innerText = sample.vbus_avg.toFixed(1) + "V";
             if (lossEl) {
                 const totalSched = totalReceivedPackets + totalLostPackets;
                 const lossRate = totalSched > 0 ? (totalLostPackets / totalSched) * 100 : 0.0;
                 lossEl.innerText = lossRate.toFixed(1) + "%";
                 lossEl.style.color = (lossRate > 1.0) ? "var(--accent-red)" : "var(--accent-green)";
             }
-            
+
             updateTimelineSliders();
             requestAnimationFrame(drawPlots);
         }
@@ -2241,8 +2308,8 @@ ${alerts.join("\n")}
                 return;
             }
 
-            let csvContent = "timestamp,packet_id,super_state,mc_state,ctrl_mode," + 
-                            TELEMETRY_LAYOUT.slice(0, 23).map(v => v.name).join(",") + "\n";
+            let csvContent = "timestamp,packet_id,super_state,mc_state,ctrl_mode," +
+                TELEMETRY_LAYOUT.slice(0, 23).map(v => v.name).join(",") + "\n";
 
             telemetryData.forEach(d => {
                 let row = [
@@ -2275,7 +2342,7 @@ ${alerts.join("\n")}
             const file = files[0];
 
             const reader = new FileReader();
-            reader.onload = function(evt) {
+            reader.onload = function (evt) {
                 const text = evt.target.result;
                 const lines = text.split("\n");
                 if (lines.length < 2) return;
@@ -2315,10 +2382,10 @@ ${alerts.join("\n")}
                 totalReceivedPackets = loadedSamples.length;
                 totalLostPackets = 0;
                 lastPacketId = null;
-                
+
                 liveFollowMode = false;
                 liveToggle.checked = false;
-                
+
                 consoleDisplay.innerText = `--- Loaded ${loadedSamples.length} diagnostic points from CSV ---\n`;
                 updateTimelineSliders();
                 requestAnimationFrame(drawPlots);
@@ -2333,7 +2400,7 @@ ${alerts.join("\n")}
             totalLostPackets = 0;
             lastPacketId = null;
 
-            const sampleCount = 2500; 
+            const sampleCount = 2500;
             const targetERPM = CONFIG.target_erpm;
 
             // Define noise helper (resolves ReferenceError)
@@ -2362,7 +2429,7 @@ ${alerts.join("\n")}
 
                 if (t < 2.0) {
                     super_state = 3; // PRE_EXCITE
-                    if_curr = t * 1.4; 
+                    if_curr = t * 1.4;
                     vbus = 14.2 - 0.2 * t;
                     ibus = 0.4;
                 } else if (t < 7.0) {
@@ -2372,64 +2439,64 @@ ${alerts.join("\n")}
                     const startT = t - 2.0;
                     if_curr = 2.8;
                     speed_tgt = Math.min(targetERPM, startT * (targetERPM / 4.0));
-                    
+
                     // Speed lag and engine sags decrease as s_pid_kp increases (stiffer loop!)
                     const lag = 180.0 / kp_ratio;
                     const ripples = 120.0 / kp_ratio;
-                    rpm = Math.max(0, speed_tgt - (lag + Math.sin(t * 30.0) * ripples)); 
+                    rpm = Math.max(0, speed_tgt - (lag + Math.sin(t * 30.0) * ripples));
                     accel = (targetERPM / 4.0) + Math.sin(t * 30.0) * 150;
-                    
+
                     // Corrective Iq is proportional to lag, Integrator accumulates with s_pid_ki
                     const speed_error = speed_tgt - rpm;
                     const p_term = speed_error * CONFIG.s_pid_kp * 15.0; // normalised current term
                     speed_iterm = (10.5 + startT * 3.5) * ki_ratio;
                     iq = p_term + speed_iterm;
                     iq = Math.max(0, Math.min(220.0, iq));
-                    
+
                     duty = Math.min(0.85, 0.15 + startT * 0.14);
-                    ibus = (iq * duty) + 1.5; 
-                    vbus = 11.2 + Math.random() * 0.4; 
+                    ibus = (iq * duty) + 1.5;
+                    vbus = 11.2 + Math.random() * 0.4;
                 } else if (t < 20.0) {
                     // Alternator Mode
                     super_state = 5; // ALTERNATOR
                     ctrl_mode = 2; // CONTROL_MODE_CURRENT
                     if_curr = 1.2 + Math.sin(t * 0.5) * 0.4;
-                    rpm = 3000 + Math.sin(t * 2.0) * 200; 
+                    rpm = 3000 + Math.sin(t * 2.0) * 200;
                     accel = Math.sin(t * 2.0) * 40;
-                    iq = -55.0 - Math.sin(t * 1.5) * 10; 
+                    iq = -55.0 - Math.sin(t * 1.5) * 10;
                     duty = 0.45;
-                    ibus = (iq * duty); 
+                    ibus = (iq * duty);
                     vbus = 13.8 + Math.sin(t * 0.5) * 0.2;
                 } else if (t < 25.0) {
                     // Stall Catch (Flying Catch Motoring)
                     super_state = 6; // STALL_CATCH
-                    ctrl_mode = 1; 
+                    ctrl_mode = 1;
                     const stallT = t - 20.0;
                     if_curr = 2.8;
                     speed_tgt = CONFIG.stall_erpm;
-                    
+
                     // Drop-rate is physically resisted by a higher stall_kp
                     const drop_rate = 600.0 / skp_ratio;
-                    rpm = Math.max(800, 3000 - stallT * drop_rate); 
+                    rpm = Math.max(800, 3000 - stallT * drop_rate);
                     accel = -drop_rate + Math.sin(t * 50.0) * 350;
-                    
+
                     // Corrective stator current calculated from stall error
                     const stall_error = speed_tgt - rpm;
                     const p_term_stall = stall_error * CONFIG.stall_kp * 15.0;
                     speed_iterm = 22.0 * ski_ratio; // Integrator pre-seeds stiffly
                     iq = p_term_stall + speed_iterm;
                     iq = Math.max(0, Math.min(180.0, iq));
-                    
+
                     duty = 0.75;
                     ibus = (iq * duty) + 1.5;
-                    vbus = 11.8 - stallT * 0.3; 
+                    vbus = 11.8 - stallT * 0.3;
                 } else if (t < 30.0) {
                     super_state = 2; // STOPPING
                     ctrl_mode = 10;
                     const stopT = t - 25.0;
                     rpm = Math.max(0, 800 - stopT * 160);
                     accel = -160;
-                    if_curr = Math.max(0, 2.8 - stopT * 1.5); 
+                    if_curr = Math.max(0, 2.8 - stopT * 1.5);
                     vbus = 12.8;
                 } else if (t < 40.0) {
                     super_state = 0; // OFF
@@ -2439,43 +2506,43 @@ ${alerts.join("\n")}
                     if_curr = 0.0;
                     iq = 0.0;
                     ibus = 0.0;
-                    vbus = 12.8; 
+                    vbus = 12.8;
                 } else if (t < 42.0) {
                     super_state = 3; // PRE_EXCITE
                     ctrl_mode = 10;
                     const exciteT = t - 40.0;
-                    if_curr = exciteT * 1.4; 
+                    if_curr = exciteT * 1.4;
                     vbus = 12.8 - 0.2 * exciteT;
                     ibus = 0.4;
                 } else if (t < 47.0) {
                     // Second Cranking Attempt (Fails to fire)
                     super_state = 4; // CRANKING
-                    ctrl_mode = 1; 
+                    ctrl_mode = 1;
                     const startT2 = t - 42.0;
                     if_curr = 2.8;
                     speed_tgt = Math.min(targetERPM, startT2 * (targetERPM / 4.0));
-                    
+
                     // Heavy cranking drag - Kp-stiffness helps, but engine is sluggish
                     const lag2 = 300.0 / (kp_ratio * 0.5 + 0.5);
-                    rpm = Math.max(0, (startT2 * 320.0) - (lag2 + Math.sin(t * 40.0) * 110.0)); 
+                    rpm = Math.max(0, (startT2 * 320.0) - (lag2 + Math.sin(t * 40.0) * 110.0));
                     accel = 320.0 + Math.sin(t * 40.0) * 80.0;
-                    
+
                     const speed_error2 = speed_tgt - rpm;
                     const p_term2 = speed_error2 * CONFIG.s_pid_kp * 15.0;
                     speed_iterm = (18.0 + startT2 * 4.5) * ki_ratio;
                     iq = p_term2 + speed_iterm;
                     iq = Math.max(0, Math.min(260.0, iq));
-                    
-                    duty = Math.min(0.92, 0.25 + startT2 * 0.16); 
+
+                    duty = Math.min(0.92, 0.25 + startT2 * 0.16);
                     ibus = (iq * duty) + 1.5;
-                    vbus = 10.1 + Math.random() * 0.3; 
+                    vbus = 10.1 + Math.random() * 0.3;
                 } else {
                     super_state = 2; // STOPPING
                     ctrl_mode = 10;
                     const stopT2 = t - 47.0;
-                    rpm = Math.max(0, 1500 - stopT2 * 500); 
+                    rpm = Math.max(0, 1500 - stopT2 * 500);
                     accel = -500;
-                    if_curr = Math.max(0, 2.8 - stopT2 * 1.8); 
+                    if_curr = Math.max(0, 2.8 - stopT2 * 1.8);
                     vbus = 12.6;
                 }
 
@@ -2569,4 +2636,5 @@ ${alerts.join("\n")}
 
     </script>
 </body>
+
 </html>
