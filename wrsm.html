@@ -494,13 +494,13 @@
         <button class="tab-btn active" id="tab-btn-review">Review Data</button>
         <button class="tab-btn" id="tab-btn-analysis">Start Analysis</button>
         <button class="tab-btn" id="tab-btn-settings">System Settings</button>
-        <!-- STREAM CONTROL BUTTONS -->
+        <!-- STREAM / RECORDING CONTROL BUTTONS -->
         <button class="tab-btn" id="btn-start-stream"
             style="border: 1px solid var(--accent-green); color: var(--accent-green); font-size: 0.75rem; margin-left: auto;"
-            disabled>Start Stream</button>
+            disabled>Start Recording</button>
         <button class="tab-btn" id="btn-stop-stream"
             style="border: 1px solid var(--accent-red); color: var(--accent-red); font-size: 0.75rem;" disabled>Stop
-            Stream</button>
+            Recording</button>
     </div>
 
     <!-- ==================== MAIN DASHBOARD (Shared Canvas/Scalers Layout) ==================== -->
@@ -613,16 +613,48 @@
         <div class="sidebar" style="grid-row: 1; overflow-y: auto;">
             <!-- Connection Card -->
             <div class="card">
-                <div class="card-title">Serial Connection</div>
+                <div class="card-title">Hardware Connection</div>
                 <div style="display: flex; flex-direction: column; gap: 10px;">
                     <div>
-                        <label>Baud Rate</label>
+                        <label>Interface Mode</label>
+                        <select id="interface-mode">
+                            <option value="serial" selected>Direct VESC USB / UART</option>
+                            <option value="can">USB-CAN Analyzer (500k CAN)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Port Baud Rate</label>
                         <select id="baudrate">
-                            <option value="115200" selected>115200 (USB Direct)</option>
+                            <option value="115200" selected>115200 (USB Direct / Standard)</option>
                             <option value="921600">921600 (High-Speed UART)</option>
+                            <option value="2000000">2000000 (2M USB-CAN Analyzer)</option>
                         </select>
                     </div>
                     <button id="btn-connect">Connect Port</button>
+                </div>
+            </div>
+
+            <!-- CAN Node Diagnostics & Remote DFU Card -->
+            <div class="card" id="card-can-dfu">
+                <div class="card-title">CAN Node Remote Controls</div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div>
+                        <label>Target CAN Node</label>
+                        <select id="can-target-node">
+                            <option value="100" selected>100 - VRR_EABI_1 (Resolver Board)</option>
+                            <option value="101">101 - FAN_1 (Radiator Fan 1)</option>
+                            <option value="102">102 - FAN_2 (Radiator Fan 2)</option>
+                            <option value="103">103 - WATER_1 (Coolant Pump)</option>
+                            <option value="104">104 - HYDRAULIC_1 (Steering Pump)</option>
+                            <option value="105">105 - MGU_1 (Main WRSM Inverter)</option>
+                            <option value="255">255 - Broadcast All Nodes</option>
+                        </select>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <button id="btn-can-dfu" style="background-color: var(--accent-red); font-size: 0.75rem;">Jump to DFU</button>
+                        <button id="btn-can-reset" style="background-color: var(--accent-gold); font-size: 0.75rem;">System Reset</button>
+                    </div>
+                    <button id="btn-can-cal-zero" style="background-color: var(--accent-blue); font-size: 0.75rem; margin-top: 4px;">🎯 Calibrate Resolver Zero</button>
                 </div>
             </div>
 
@@ -2070,7 +2102,11 @@ ${alerts.join("\n")}
             }
         });
 
-        // --- Harness Serial Connections & Packet Parsing ---
+        // --- State Flags & CAN Telemetry Aggregators ---
+        let isRecording = false;
+        let activeCanSample = null;
+
+        // --- Harness Serial / CAN Connections & Packet Parsing ---
         btnConnect.addEventListener('click', async () => {
             if (port) { await disconnect(); }
             else { await connect(); }
@@ -2082,15 +2118,19 @@ ${alerts.join("\n")}
                 const baud = parseInt(document.getElementById('baudrate').value);
                 await port.open({ baudRate: baud });
 
+                const iface = document.getElementById('interface-mode').value;
                 btnConnect.innerText = "Disconnect Port";
                 btnConnect.className = "disconnect";
-                streamIndicator.innerText = "● LIVE";
+                streamIndicator.innerText = isRecording ? "● LIVE (RECORDING)" : "● LIVE (STREAMING)";
                 streamIndicator.style.color = "var(--accent-green)";
 
                 termInput.disabled = false;
                 btnSend.disabled = false;
                 btnStartStream.disabled = false;
                 btnStopStream.disabled = false;
+
+                consoleDisplay.innerText += `[System] Connected via ${iface === 'can' ? 'USB-CAN Analyzer (500k CAN)' : 'Direct VESC Serial'} at ${baud} baud\n`;
+                consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
 
                 readLoopPromise = readLoop();
             } catch (err) {
@@ -2136,6 +2176,43 @@ ${alerts.join("\n")}
             btnStopStream.disabled = true;
         }
 
+        async function sendRawSerialBytes(bytes) {
+            if (!port || !port.writable) return;
+            const writer = port.writable.getWriter();
+            try {
+                await writer.write(bytes);
+            } catch (err) {
+                console.error("Serial write error:", err);
+            } finally {
+                writer.releaseLock();
+            }
+        }
+
+        async function sendSerialCommand(cmd) {
+            if (!port || !port.writable) return;
+            const iface = document.getElementById('interface-mode').value;
+            if (iface === 'serial') {
+                const encoder = new TextEncoder();
+                const raw = encoder.encode(cmd + "\n");
+                await sendRawSerialBytes(raw);
+            }
+        }
+
+        async function sendCanFrame(canId, isExt, dataBytes) {
+            const packet = new Uint8Array(20);
+            packet[0] = 0xAA; // Header
+            packet[1] = isExt ? 0xE8 : 0xC8; // Control byte: standard/ext, data frame, DLC 8
+            packet[2] = (canId >>> 24) & 0xFF;
+            packet[3] = (canId >>> 16) & 0xFF;
+            packet[4] = (canId >>> 8) & 0xFF;
+            packet[5] = canId & 0xFF;
+            for (let j = 0; j < 8; j++) {
+                packet[6 + j] = (dataBytes && j < dataBytes.length) ? dataBytes[j] : 0x00;
+            }
+            packet[19] = 0x55; // Footer
+            await sendRawSerialBytes(packet);
+        }
+
         async function readLoop() {
             while (port && port.readable) {
                 try {
@@ -2143,7 +2220,7 @@ ${alerts.join("\n")}
                     while (true) {
                         const { value, done } = await reader.read();
                         if (done) {
-                            return; // Terminate the ENTIRE read loop (runs finally and exits function)
+                            return; // Terminate read loop
                         }
 
                         const newBuffer = new Uint8Array(rxBuffer.length + value.length);
@@ -2166,6 +2243,25 @@ ${alerts.join("\n")}
         }
 
         function processBuffer() {
+            const iface = document.getElementById('interface-mode').value;
+
+            // ==================== MODE B: CAN BUS ADAPTER (20-Byte Frames) ====================
+            if (iface === 'can') {
+                let i = 0;
+                while (i + 20 <= rxBuffer.length) {
+                    if (rxBuffer[i] === 0xAA && rxBuffer[i + 19] === 0x55) {
+                        const frameBytes = rxBuffer.slice(i, i + 20);
+                        parseCanFrame(frameBytes);
+                        i += 20;
+                    } else {
+                        i++;
+                    }
+                }
+                rxBuffer = rxBuffer.slice(i);
+                return;
+            }
+
+            // ==================== MODE A: DIRECT VESC SERIAL ====================
             let i = 0;
             while (i < rxBuffer.length) {
 
@@ -2189,7 +2285,6 @@ ${alerts.join("\n")}
 
                                     // --- CASE 1: UNPACK LIVE WRSM TELEMETRY (ID = 170 / 0xAA) ---
                                     if (commandId === 170) {
-                                        // Passes payload directly (index 0 is ID, index 1 is start_marker, index 2 is packet_id...)
                                         parseBinaryPacket(payload);
                                     }
                                     // --- CASE 2: UNPACK STANDARD TEXT PRINT FEEDBACK (ID = 21 / COMM_PRINT) ---
@@ -2233,6 +2328,140 @@ ${alerts.join("\n")}
                 i++;
             }
             rxBuffer = rxBuffer.slice(i);
+        }
+
+        let canReceivedMask = 0;
+
+        function commitCanSample() {
+            if (!activeCanSample) return;
+            totalReceivedPackets++;
+            activeCanSample.timestamp = Date.now();
+            activeCanSample.packet_id = totalReceivedPackets;
+
+            const sampleCopy = Object.assign({}, activeCanSample);
+            const phy = runPhysicsMath(sampleCopy);
+            Object.assign(sampleCopy, phy);
+
+            if (isRecording) {
+                telemetryData.push(sampleCopy);
+            }
+
+            // Update Live Status HUD Elements
+            const stateEl = document.getElementById('val-state');
+            const rpmEl = document.getElementById('val-rpm');
+            const vbusEl = document.getElementById('val-vbus');
+            const lossEl = document.getElementById('val-loss');
+
+            if (stateEl) stateEl.innerText = getSuperStateName(sampleCopy.super_state);
+            if (rpmEl) rpmEl.innerText = Math.round(sampleCopy.rpm);
+            if (vbusEl) vbusEl.innerText = sampleCopy.vbus_avg.toFixed(1) + "V";
+            if (lossEl) {
+                lossEl.innerText = isRecording ? "REC" : "LIVE";
+                lossEl.style.color = isRecording ? "var(--accent-red)" : "var(--accent-green)";
+            }
+
+            updateTimelineSliders();
+            requestAnimationFrame(drawPlots);
+        }
+
+        function parseCanFrame(frame) {
+            let canId = ((frame[2] << 24) | (frame[3] << 16) | (frame[4] << 8) | frame[5]) >>> 0;
+            if (canId > 0x1FFFFFFF) {
+                canId = ((frame[4] << 8) | frame[5]) & 0x7FF;
+            } else if (canId <= 0x7FF || (frame[2] === 0 && frame[3] === 0)) {
+                canId = canId & 0x7FF;
+            }
+
+            const data = frame.subarray(6, 14);
+            const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+
+            if (!activeCanSample) {
+                activeCanSample = {
+                    timestamp: Date.now(),
+                    packet_id: 0,
+                    super_state: 0,
+                    mc_state: 0,
+                    ctrl_mode: 0,
+                    rpm: 0.0,
+                    accel_avg: 0.0,
+                    accel_mad: 0.0,
+                    iq_avg: 0.0,
+                    iq_mad: 0.0,
+                    iq_target: 0.0,
+                    id_avg: 0.0,
+                    id_min: 0.0,
+                    id_max: 0.0,
+                    if_avg: 0.0,
+                    if_mad: 0.0,
+                    field_pwm_avg: 0.0,
+                    field_pwm_mad: 0.0,
+                    vbus_avg: 12.0,
+                    vbus_min: 12.0,
+                    vbus_max: 12.0,
+                    duty_avg: 0.0,
+                    duty_max: 0.0,
+                    if_min: 0.0,
+                    stator_fw_id: 0.0,
+                    speed_target: 0.0,
+                    speed_i_term: 0.0,
+                    i_bus: 0.0
+                };
+            }
+
+            // --- 0x601 (1537) / 0x101 (257) CoreDynamics ---
+            if (canId === 0x601 || canId === 1537 || canId === 257 || canId === 0x101) {
+                // If a new frame cycle arrives before 0x0F was reached, commit previous cycle
+                if (canReceivedMask > 0 && canReceivedMask !== 0x0F) {
+                    commitCanSample();
+                }
+                canReceivedMask = 0x01;
+
+                activeCanSample.rpm = view.getInt16(0, true);
+                activeCanSample.duty_avg = view.getInt16(2, true) * 0.0001;
+                activeCanSample.vbus_avg = view.getUint16(4, true) * 0.01;
+                activeCanSample.vbus_min = activeCanSample.vbus_avg;
+                activeCanSample.vbus_max = activeCanSample.vbus_avg;
+                activeCanSample.super_state = view.getUint8(6);
+                const mctrl = view.getUint8(7);
+                activeCanSample.mc_state = mctrl & 0x0F;
+                activeCanSample.ctrl_mode = (mctrl >> 4) & 0x0F;
+            }
+            // --- 0x602 (1538) / 0x102 (258) StatorVectors ---
+            else if (canId === 0x602 || canId === 1538 || canId === 258 || canId === 0x102) {
+                canReceivedMask |= 0x02;
+                activeCanSample.iq_avg = view.getInt16(0, true) * 0.1;
+                activeCanSample.id_avg = view.getInt16(2, true) * 0.1;
+                activeCanSample.iq_target = view.getInt16(4, true) * 0.1;
+                activeCanSample.i_bus = view.getInt16(6, true) * 0.1;
+            }
+            // --- 0x603 (1539) / 0x103 (259) RotorFieldSags ---
+            else if (canId === 0x603 || canId === 1539 || canId === 259 || canId === 0x103) {
+                canReceivedMask |= 0x04;
+                activeCanSample.if_avg = view.getUint16(0, true) * 0.001;
+                activeCanSample.if_min = view.getUint16(2, true) * 0.001;
+                activeCanSample.field_pwm_avg = view.getInt16(4, true) * 0.0001;
+                activeCanSample.id_min = view.getInt16(6, true) * 0.1;
+            }
+            // --- 0x604 (1540) / 0x104 (260) MechanicalTransients ---
+            else if (canId === 0x604 || canId === 1540 || canId === 260 || canId === 0x104) {
+                canReceivedMask |= 0x08;
+                activeCanSample.speed_target = view.getInt16(4, true);
+                activeCanSample.speed_i_term = view.getInt16(6, true) * 0.1;
+            }
+            // --- 0x651 (1617) / 0x605 (1541) / 0x105 (261) VRR-to-EABI Resolver ---
+            else if (canId === 0x651 || canId === 1617 || canId === 0x605 || canId === 1541 || canId === 261 || canId === 0x105) {
+                const elecAngle = view.getInt16(0, true) * 0.01;
+                const erpm = view.getInt16(4, true);
+                const locked = view.getUint8(6);
+                consoleDisplay.textContent += `[CAN 0x651] Resolver Angle: ${elecAngle.toFixed(1)}° | ${erpm} ERPM | Lock: ${locked ? 'YES' : 'NO'}\n`;
+                consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
+            }
+
+            // If all 4 WRSM messages have arrived in this 20ms round-robin cycle, commit the completed row!
+            if (canReceivedMask === 0x0F) {
+                commitCanSample();
+                canReceivedMask = 0;
+            }
         }
 
         function parseBinaryPacket(bytes) {
@@ -2607,21 +2836,70 @@ ${alerts.join("\n")}
             if (e.key === 'Enter') btnSendTerminal.click();
         });
 
-        // --- Interactive WRSM Stream Control Buttons ---
+        // --- Interactive WRSM Stream / Recording Control Buttons ---
         const btnStartStream = document.getElementById('btn-start-stream');
         const btnStopStream = document.getElementById('btn-stop-stream');
 
         btnStartStream.addEventListener('click', async () => {
-            consoleDisplay.innerText += `> wrsm_stream on\n`;
+            isRecording = true;
+            streamIndicator.innerText = "● LIVE (RECORDING)";
+            streamIndicator.style.color = "var(--accent-red)";
+            consoleDisplay.innerText += `[System] Session Telemetry Recording: STARTED\n`;
             consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
-            await sendSerialCommand('wrsm_stream on');
+
+            const iface = document.getElementById('interface-mode').value;
+            if (iface === 'serial') {
+                await sendSerialCommand('wrsm_stream on');
+            }
         });
 
         btnStopStream.addEventListener('click', async () => {
-            consoleDisplay.innerText += `> wrsm_stream off\n`;
+            isRecording = false;
+            streamIndicator.innerText = "● LIVE (STREAMING)";
+            streamIndicator.style.color = "var(--accent-green)";
+            consoleDisplay.innerText += `[System] Session Telemetry Recording: STOPPED (${telemetryData.length} samples captured)\n`;
             consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
-            await sendSerialCommand('wrsm_stream off');
+
+            const iface = document.getElementById('interface-mode').value;
+            if (iface === 'serial') {
+                await sendSerialCommand('wrsm_stream off');
+            }
         });
+
+        // --- CAN Node Remote Control Listeners (0x7FF DBC Command) ---
+        const btnCanDfu = document.getElementById('btn-can-dfu');
+        const btnCanReset = document.getElementById('btn-can-reset');
+
+        if (btnCanDfu) {
+            btnCanDfu.addEventListener('click', async () => {
+                const targetNode = parseInt(document.getElementById('can-target-node').value);
+                consoleDisplay.innerText += `[CAN] Sending Jump-to-DFU command to Node ${targetNode} (ID: 0x7FF)...\n`;
+                consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
+                // Standard ID 0x7FF, DLC 8: [TargetNode, 0xDE, 0xAD, 0xBE, 0xEF, 0x01 (ENTER_DFU), 0x00, 0x00]
+                await sendCanFrame(0x7FF, false, [targetNode, 0xDE, 0xAD, 0xBE, 0xEF, 0x01, 0x00, 0x00]);
+            });
+        }
+
+        if (btnCanReset) {
+            btnCanReset.addEventListener('click', async () => {
+                const targetNode = parseInt(document.getElementById('can-target-node').value);
+                consoleDisplay.innerText += `[CAN] Sending System Reset command to Node ${targetNode} (ID: 0x7FF)...\n`;
+                consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
+                // Standard ID 0x7FF, DLC 8: [TargetNode, 0xDE, 0xAD, 0xBE, 0xEF, 0x02 (SYSTEM_RESET), 0x00, 0x00]
+                await sendCanFrame(0x7FF, false, [targetNode, 0xDE, 0xAD, 0xBE, 0xEF, 0x02, 0x00, 0x00]);
+            });
+        }
+
+        const btnCanCalZero = document.getElementById('btn-can-cal-zero');
+        if (btnCanCalZero) {
+            btnCanCalZero.addEventListener('click', async () => {
+                const targetNode = parseInt(document.getElementById('can-target-node').value);
+                consoleDisplay.innerText += `[CAN] Calibrating Phase A Zero Offset for Node ${targetNode} (ID: 0x7FE, Action: 0x04)...\n`;
+                consoleDisplay.scrollTop = consoleDisplay.scrollHeight;
+                // Standard ID 0x7FE: [TargetNode, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40 (Action 0x04 << 4)]
+                await sendCanFrame(0x7FE, false, [targetNode, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40]);
+            });
+        }
 
         // --- Dynamic Version Propagator ---
         (function applyDynamicVersion() {
